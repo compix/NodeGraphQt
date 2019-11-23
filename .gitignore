@@ -13,8 +13,3 @@ docs/_build/
 # windows/osx stuff
 *.db
 *.DS_Store
-
-# test stuff
-dist
-*.egg-info
-*.json

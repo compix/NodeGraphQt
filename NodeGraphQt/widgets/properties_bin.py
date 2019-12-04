@@ -3,6 +3,7 @@ from NodeGraphQt import QtWidgets, QtCore, QtGui, QtCompat
 
 from NodeGraphQt.widgets.properties import NodePropWidget
 
+PROPERTY_BG_COLOR = QtGui.QColor(53, 53, 53)
 
 class PropertiesDelegate(QtWidgets.QStyledItemDelegate):
 
@@ -16,7 +17,7 @@ class PropertiesDelegate(QtWidgets.QStyledItemDelegate):
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing, False)
         painter.setPen(QtCore.Qt.NoPen)
-        painter.setBrush(option.palette.midlight())
+        painter.setBrush(PROPERTY_BG_COLOR)
         painter.drawRect(option.rect)
 
         if option.state & QtWidgets.QStyle.State_Selected:
@@ -48,6 +49,7 @@ class PropertiesList(QtWidgets.QTableWidget):
             self.horizontalHeader(), 0, QtWidgets.QHeaderView.Stretch)
         self.horizontalHeader().hide()
 
+        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
 
 class PropertiesBinWidget(QtWidgets.QWidget):
     """

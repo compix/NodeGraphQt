@@ -74,6 +74,8 @@ def setup_context_menu(graph):
 
     edit_menu.add_separator()
 
+    return file_menu.qmenu, edit_menu.qmenu
+
 
 # --- menu command functions. ---
 

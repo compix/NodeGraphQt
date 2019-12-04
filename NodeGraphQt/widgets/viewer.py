@@ -82,6 +82,7 @@ class NodeViewer(QtWidgets.QGraphicsView):
         # don't seem to trigger so we create a hidden menu bar.
         menu_bar = QtWidgets.QMenuBar(self)
         menu_bar.setNativeMenuBar(False)
+        menu_bar.setVisible(False)
         # shortcuts don't work with "setVisibility(False)".
         menu_bar.resize(0, 0)
         menu_bar.addMenu(self._context_menu)

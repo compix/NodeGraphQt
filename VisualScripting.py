@@ -22,7 +22,7 @@ class VisualScripting(object):
         self.graphViewer = self.graph.viewer()
 
         # set up default menu and commands.
-        setup_context_menu(self.graph)
+        self.fileMenu, self.editMenu = setup_context_menu(self.graph)
 
         graphSerializationFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), graphSerializationFolder)
         self.graphManager = GraphManager(graphSerializationFolder)
@@ -30,7 +30,8 @@ class VisualScripting(object):
         self.initNodes()
         self.setupPropertiesBin()
 
-        uiFile = QtCore.QFile("./graphQt.ui")
+        uiFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "graphQt.ui")
+        uiFile = QtCore.QFile(uiFilePath)
         uiFile.open(QtCore.QFile.ReadOnly)
         loader = QtUiTools.QUiLoader()
         self.window = loader.load(uiFile)
@@ -46,6 +47,8 @@ class VisualScripting(object):
     def setupMenuBar(self):
         menuBar = QtWidgets.QMenuBar()
         sessionMenu = QtWidgets.QMenu("Session")
+        menuBar.addMenu(self.fileMenu)
+        menuBar.addMenu(self.editMenu)
         menuBar.addMenu(sessionMenu)
         menuBar.setMaximumHeight(20)
 
@@ -99,6 +102,12 @@ class VisualScripting(object):
         
         self.nodeTree = NodeTreeWidget(node_graph=self.graph)
         self.nodeTree.update()
+
+    def getAsDockWidget(self, parent):
+        self.dockWidget = QtWidgets.QDockWidget("Visual Scripting", parent)
+        self.dockWidget.setWidget(self.window)
+        self.dockWidget.setObjectName("visualScriptingDockWidget")
+        return self.dockWidget
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

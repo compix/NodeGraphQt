@@ -36,11 +36,11 @@ class VisualScripting(object):
         loader = QtUiTools.QUiLoader()
         self.window = loader.load(uiFile)
 
-        splitter =  QtWidgets.QSplitter()
-        self.window.bottomLayout.addWidget(splitter)
-        splitter.addWidget(self.nodeTree)
-        splitter.addWidget(self.graphViewer)
-        splitter.addWidget(self.propertiesBin)
+        self.splitter =  QtWidgets.QSplitter()
+        self.window.bottomLayout.addWidget(self.splitter)
+        self.splitter.addWidget(self.nodeTree)
+        self.splitter.addWidget(self.graphViewer)
+        self.splitter.addWidget(self.propertiesBin)
 
         self.setupMenuBar()
 
@@ -108,6 +108,12 @@ class VisualScripting(object):
         self.dockWidget.setWidget(self.window)
         self.dockWidget.setObjectName("visualScriptingDockWidget")
         return self.dockWidget
+
+    def saveWindowState(self, settings):
+        settings.setValue("visual_scripting_splitter_sizes", self.splitter.saveState())
+        
+    def restoreWindowState(self, settings):
+        self.splitter.restoreState(settings.value("visual_scripting_splitter_sizes"))
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

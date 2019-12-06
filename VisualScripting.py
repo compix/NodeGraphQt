@@ -100,6 +100,8 @@ class VisualScripting(object):
         for n in base_nodes.NODES_TO_REGISTER:
             self.graph.register_node(n)
         
+        self.graph.register_node(BackdropNode)
+
         self.nodeTree = NodeTreeWidget(node_graph=self.graph)
         self.nodeTree.update()
 

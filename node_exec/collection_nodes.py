@@ -10,3 +10,16 @@ def append(collection, element):
 @defInlineNode('Length', identifier=COLLECTION_IDENTIFIER)
 def length(collection):
     return f'len({collection})'
+
+@defInlineNode('Get Dict Value', identifier=COLLECTION_IDENTIFIER)
+def getDictValue(dictionary, key, default):
+    return f'{dictionary}.get({key}, {default})'
+
+@defInlineNode('Contains', identifier=COLLECTION_IDENTIFIER)
+def contains(collection, key):
+    return f'{key} in {collection}'
+
+@defInlineNode('Get Value By Index', identifier=COLLECTION_IDENTIFIER)
+def getValueByIndex(collection, index):
+    return f'{collection}[{index}]' 
+

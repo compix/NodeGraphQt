@@ -17,8 +17,8 @@ def getExecuteSource(node, params):
     else:
         return f"{node.getFunctionName()}({','.join(params)})"
 
-def getVarNameSource(node):
-    return f"var_{node.id}"
+def getVarNameSource(node,idx=0):
+    return f"var_{node.id}_{idx}" if idx != None else f"var_{node.id}"
 
 def getParamName(port):
     return getVarNameSource(port.connected_ports()[0].node())
@@ -27,9 +27,12 @@ def getInputParamsSource(node):
     params = []
     for inPort in node._inputs:
         if len(inPort.connected_ports()) > 0:
-            n = inPort.connected_ports()[0].node()
+            srcOutputPort = inPort.connected_ports()[0]
+            srcNode = srcOutputPort.node()
+            
             if not inPort.is_exec:
-                varName = getVarNameSource(n)
+                outputPortIdx = getNonExecutionOutputPorts(srcNode).index(srcOutputPort)
+                varName = getVarNameSource(srcNode,idx=outputPortIdx)
                 params.append(varName)
         else:
             params.append(node.getDefaultInput(inPort))
@@ -50,7 +53,8 @@ def generatePythonGetSourceCodeLines(node, sourceCodeLines, indent):
             nextNode = i.connected_ports()[0].node()
             generatePythonGetSourceCodeLines(nextNode, sourceCodeLines, indent)
 
-    varName = getVarNameSource(node)
+    varNames = [getVarNameSource(node, idx) for idx in range(0, len(getNonExecutionOutputPorts(node)))]
+    varName = ','.join(varNames)
     codeLine = f"{indent}{varName} = {codeLine}"
         
     if not codeLine in sourceCodeLines:
@@ -83,7 +87,7 @@ def expandExecCode(execPort, sourceCodeLines, indent):
     if not nextNode is None:
         generatePythonExecutionSourceCodeLines(nextNode, sourceCodeLines, indent)
 
-def expandCodeWithCondition(execPort, sourceCodeLines, conditionalLine, indent):
+def expandCodeWithCondition(execPort, sourceCodeLines, conditionalLine, indent, preBodyLines=[]):
     """
     Expands the code with a condition check line and a body.
 
@@ -97,6 +101,8 @@ def expandCodeWithCondition(execPort, sourceCodeLines, conditionalLine, indent):
 
     nextNode = getNextExecNode(execPort)
     sourceCodeLines.append(conditionalLine)
+
+    sourceCodeLines += preBodyLines
 
     if not nextNode is None:
         generatePythonExecutionSourceCodeLines(nextNode, sourceCodeLines, indent + DEFAULT_INDENT)
@@ -157,7 +163,9 @@ def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = ""):
 
     generateParamSourceCodeLines(node, sourceCodeLines, indent)
 
-    if isinstance(node, flow_nodes.ForLoopNode):
+    if isinstance(node, base_nodes.BaseCustomCodeNode):
+        node.generateCode(sourceCodeLines, indent)
+    elif isinstance(node, flow_nodes.ForLoopNode):
         handleForLoopSourceCodeLines(node, sourceCodeLines, indent)
     elif isinstance(node, flow_nodes.ForEachLoopNode):
         handleForEachLoopSourceCodeLines(node, sourceCodeLines, indent)
@@ -168,7 +176,9 @@ def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = ""):
     else:
         codeLine = getExecuteSource(node, getInputParamsSource(node))
         if len(getNonExecutionOutputPorts(node)) > 0:
-            codeLine =  f"{getVarNameSource(node)} = {codeLine}"
+            varNames = [getVarNameSource(node, idx) for idx in range(0, len(getNonExecutionOutputPorts(node)))]
+            varName = ','.join(varNames)
+            codeLine =  f"{varName} = {codeLine}"
         sourceCodeLines.append(makeCodeLine(codeLine, indent))
         generatePythonExecutionSourceCodeLines(getExecOutNode(node), sourceCodeLines, indent)
 

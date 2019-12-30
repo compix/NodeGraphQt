@@ -1,4 +1,5 @@
 from node_exec.base_nodes import defNode
+import re
 
 STRING_IDENTIFIER = 'String'
 
@@ -9,3 +10,58 @@ def removeWhiteSpace(value):
 @defNode('Strip', identifier=STRING_IDENTIFIER)
 def _strip(value):
     return value.strip()
+
+@defNode('Split', identifier=STRING_IDENTIFIER)
+def _split(value, seperator):
+    return value.split(None if seperator == '' else seperator)
+
+@defNode('Is Empty or Whitespace', identifier=STRING_IDENTIFIER)
+def isEmptyOrWhitespace(value):
+    return value == None or value == '' or value.isspace()
+
+@defNode('Regex Match', identifier=STRING_IDENTIFIER)
+def regexMatch(pattern, string, flags):
+    return re.match(pattern, string, flags=(0 if flags == None or flags == '' else flags))
+
+@defNode('Regex Full Match', identifier=STRING_IDENTIFIER)
+def regexFullmatch(pattern, string, flags):
+    return re.fullmatch(pattern, string, flags=(0 if flags == None or flags == '' else flags))
+
+@defNode('Regex Search', identifier=STRING_IDENTIFIER)
+def regexSearch(pattern, string, flags):
+    return re.search(pattern, string, flags=(0 if flags == None or flags == '' else flags))
+
+@defNode('Regex Find All', identifier=STRING_IDENTIFIER)
+def regexFindall(pattern, string, flags):
+    return re.findall(pattern, string, flags=(0 if flags == None or flags == '' else flags))
+
+@defNode('Regex Split', identifier=STRING_IDENTIFIER)
+def regexSplit(pattern, string, flags):
+    return re.split(pattern, string, flags=(0 if flags == None or flags == '' else flags))
+
+@defNode('Regex Sub', identifier=STRING_IDENTIFIER)
+def regexSub(pattern, replacement, string, count, flags):
+    if count == None or count == '':
+        count = 0
+
+    return re.sub(pattern, replacement, string, count=count, flags=(0 if flags == None or flags == '' else flags))
+
+@defNode('Regex Find Iterator', identifier=STRING_IDENTIFIER)
+def regexFindIter(pattern, string, flags):
+    return re.finditer(pattern, string, flags=(0 if flags == None or flags == '' else flags))
+
+@defNode('Regex Escape', identifier=STRING_IDENTIFIER)
+def regexEscape(pattern):
+    return re.escape(pattern)
+
+@defNode('Regex MatchObject Group', identifier=STRING_IDENTIFIER)
+def regexMatchObjectGroup(matchObject, groupIndex):
+    return matchObject.group(groupIndex) if matchObject != None else None
+
+@defNode('Regex MatchObject All Groups', identifier=STRING_IDENTIFIER)
+def regexMatchObjectAllGroups(matchObject):
+    return matchObject.groups() if matchObject != None else []
+    
+@defNode('Regex MatchObject Group Dict', identifier=STRING_IDENTIFIER)
+def regexMatchObjectGroupDict(matchObject):
+    return matchObject.groupdict() if matchObject != None else dict()

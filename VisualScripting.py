@@ -47,6 +47,7 @@ class VisualScripting(object):
     def setupMenuBar(self):
         menuBar = QtWidgets.QMenuBar()
         sessionMenu = QtWidgets.QMenu("Session")
+
         menuBar.addMenu(self.fileMenu)
         menuBar.addMenu(self.editMenu)
         menuBar.addMenu(sessionMenu)
@@ -79,7 +80,7 @@ class VisualScripting(object):
             self.graphManager.saveGraph(self.graph, graphName)
 
     def onLoad(self):
-        availableGraphs = list(self.graphManager.availableGraphNames)
+        availableGraphs = sorted(list(self.graphManager.availableGraphNames))
         graphName, ok = QtWidgets.QInputDialog().getItem(self.window, "Select the graph", "Graph name:", availableGraphs, editable=False)
 
         if ok:

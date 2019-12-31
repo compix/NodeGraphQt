@@ -23,3 +23,22 @@ def contains(collection, key):
 def getValueByIndex(collection, index):
     return f'{collection}[{index}]' 
 
+@defInlineNode('Merge Dictionaries', identifier=COLLECTION_IDENTIFIER)
+def mergeDicts(dict0, dict1):
+    return "{" + f'**{dict0}, **{dict1}' + "}"
+
+@defNode('Add Dictionary Entry', isExecutable=True, identifier=COLLECTION_IDENTIFIER)
+def addDictEntry(dictionary, key, value):
+    dictionary[key] = value
+    return dictionary
+
+@defNode('Remove Dictionary Key', isExecutable=True, identifier=COLLECTION_IDENTIFIER)
+def removeDictKey(dictionary, key):
+    '''
+    Returns the removed key. If the key does not exist None is returned.
+    '''
+    return dictionary.pop(key, None)
+
+@defInlineNode('Create Dictionary', isExecutable=True, returnNames=['dict'], identifier=COLLECTION_IDENTIFIER)
+def createDict():
+    return 'dict()'

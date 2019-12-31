@@ -17,7 +17,3 @@ def getNumberOfRows(table):
 @defNode(name='Get Cell Value', returnNames=['value'], identifier=TABLE_IDENTIFIER)
 def getCellValue(table, rowIndex, colIndex):
     return table.getCellValue(rowIndex, colIndex)
-
-@defNode(name='Test', returnNames=['v0', 'v1'], identifier=TABLE_IDENTIFIER)
-def someTest():
-    return 5, "Test"

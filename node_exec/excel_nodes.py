@@ -55,6 +55,13 @@ if imported:
 
             self.add_exec_input('Execute')
 
+            self.loop_body_port = self.add_exec_output('Iteration')
+            self.loop_complete_port = self.add_exec_output('Completed')
+
+            self.add_output('table')
+            self.add_output('header')
+            self.entry_port = self.add_output('entry as dict')
+
             self.pathInput = self.add_text_input('path', 'Workbook Path')
             self.sheetInput = self.add_text_input('sheetName', 'Sheet Name')
             self.encodingOverrideInput = self.add_text_input('encodingOverride', 'Encoding Override')
@@ -101,14 +108,6 @@ if imported:
 
         def refresh(self):
             self.firstCall = False
-            self.clearOutputs()
-
-            self.loop_body_port = self.add_exec_output('Iteration')
-            self.loop_complete_port = self.add_exec_output('Completed')
-
-            self.add_output('table')
-            self.add_output('header')
-            self.entry_port = self.add_output('entry as dict')
 
             workbookPath = self.get_property('path')
             sheetName = self.get_property('sheetName')
@@ -118,9 +117,26 @@ if imported:
                 self.table = ExcelTable(xlrd.open_workbook(filename=workbookPath,encoding_override=encodingOverride if encodingOverride != '' else None).sheet_by_name(sheetName))
 
                 headerRow = self.table.getRowValues(0)
+                headerPortNames = self.outputNames[5:]
+
+                for portName in headerPortNames:
+                    if not portName in headerRow:
+                        self.deletePort(self.getOutputPortByName(portName))
 
                 for val in headerRow:
-                    self.add_output(val)
+                    if not val in headerPortNames:
+                        self.add_output(val)
+                    else:
+                        port = self.getOutputPortByName(val)
+                        self._outputs.remove(port)
+                        self._outputs.append(port)
+
+                        item = self.view._output_items[port.view]
+                        del self.view._output_items[port.view]
+                        self.view._output_items[port.view] = item
+
+                self.view.post_init()
+
             except:
                 print("Excel Node: Incorrect input.")
 

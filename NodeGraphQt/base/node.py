@@ -54,6 +54,16 @@ class NodeObject(object):
         return '<{}("{}") object at {}>'.format(
             self.__class__.__name__, self.NODE_NAME, hex(id(self)))
 
+    def deserialize(self, data):
+        # set properties.
+        for prop in self.model.properties.keys():
+            if prop in data.keys():
+                self.model.set_property(prop, data[prop])
+
+        # set custom properties.
+        for prop, val in data.get('custom', {}).items():
+            self.model.set_property(prop, val)
+
     @classproperty
     def type_(cls):
         """
@@ -441,7 +451,7 @@ class BaseNode(NodeObject):
         widget = NodeLineEdit(self.view, name, label, text)
         widget.value_changed.connect(lambda k, v: self.set_property(k, v))
         self.view.add_widget(widget)
-        
+
         return widget
 
     def add_checkbox(self, name='', label='', text='', state=False, tab=None):

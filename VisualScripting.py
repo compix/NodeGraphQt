@@ -1,5 +1,8 @@
 import os
 import sys
+import node_exec.nodes_cfg
+node_exec.nodes_cfg.init()
+
 from node_exec import *
 from node_exec import base_nodes
 from node_exec import all_nodes
@@ -98,13 +101,20 @@ class VisualScripting(object):
         self.graph.node_double_clicked.connect(showPropertyBin)
 
     def initNodes(self):
-        for n in base_nodes.NODES_TO_REGISTER:
+        for n in node_exec.nodes_cfg.NODES_TO_REGISTER:
             self.graph.register_node(n)
         
         self.graph.register_node(BackdropNode)
 
         self.nodeTree = NodeTreeWidget(node_graph=self.graph)
         self.nodeTree.update()
+
+    def updateNodeRegistration(self):
+        for n in node_exec.nodes_cfg.NODES_TO_REGISTER:
+            try:
+                self.graph.register_node(n)
+            except:
+                pass
 
     def getAsDockWidget(self, parent):
         self.dockWidget = QtWidgets.QDockWidget("Visual Scripting", parent)

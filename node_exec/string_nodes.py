@@ -1,7 +1,22 @@
-from node_exec.base_nodes import defNode
+from node_exec.base_nodes import defNode, BaseCustomNode, VariableInputCountNode
 import re
 
 STRING_IDENTIFIER = 'String'
+
+class ConcatNode(VariableInputCountNode):
+    __identifier__ = STRING_IDENTIFIER
+    NODE_NAME = 'Concat'
+
+    def __init__(self):
+        super(ConcatNode, self).__init__()
+
+        self.add_input("seperator")
+        self.add_output("return")
+
+    @staticmethod
+    def execute(seperator, *argv):
+        sep = seperator if seperator != None else ''
+        return sep.join([(s if s != None else '') for s in argv])
 
 @defNode('Remove Whitespace', identifier=STRING_IDENTIFIER)
 def removeWhiteSpace(value):

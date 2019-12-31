@@ -764,13 +764,8 @@ class NodeGraph(QtCore.QObject):
             if NodeCls:
                 node = NodeCls()
                 node.NODE_NAME = n_data.get('name', node.NODE_NAME)
-                # set properties.
-                for prop in node.model.properties.keys():
-                    if prop in n_data.keys():
-                        node.model.set_property(prop, n_data[prop])
-                # set custom properties.
-                for prop, val in n_data.get('custom', {}).items():
-                    node.model.set_property(prop, val)
+
+                node.deserialize(n_data)
 
                 nodes[n_id] = node
                 self.add_node(node, n_data.get('pos'))

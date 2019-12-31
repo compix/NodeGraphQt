@@ -4,16 +4,16 @@ from NodeGraphQt.constants import NODE_PROP_QLINEEDIT
 from NodeGraphQt import QtWidgets
 from NodeGraphQt.widgets.node_property import _NodeGroupBox, NodeBaseWidget
 from NodeGraphQt.constants import IN_PORT, OUT_PORT
+import node_exec.nodes_cfg
 
 DEFAULT_PORT_COLOR = (0,128,0)
 EXECUTE_PORT_COLOR = (0,0,0)
 
-NODES_TO_REGISTER = []
 
 DEFAULT_IDENTIFIER = 'Default'
 
 def excludeFromRegistration(cls):
-    NODES_TO_REGISTER.remove(cls)
+    node_exec.nodes_cfg.NODES_TO_REGISTER.remove(cls)
     return cls
 
 def is_float(string):
@@ -36,7 +36,7 @@ class BaseCustomNode(BaseNode):
     
     def __init_subclass__(cls, scm_type=None, name=None, **kwargs):
         super().__init_subclass__(**kwargs)
-        NODES_TO_REGISTER.append(cls)
+        node_exec.nodes_cfg.NODES_TO_REGISTER.append(cls)
 
     def __init__(self):
         super(BaseCustomNode, self).__init__()
@@ -59,6 +59,21 @@ class BaseCustomNode(BaseNode):
         else:
             return '{!r}'.format(prop)
 
+    def add_or_update_input(self, name='input', default_value='', multi_input=False, display_name=True,
+                  color=DEFAULT_PORT_COLOR):
+        
+        port = self.getInputPortByName(name)
+        if port == None:
+            port = super().add_input(name,multi_input, display_name,color)
+
+        try:
+            self.create_property(name, default_value, widget_type=NODE_PROP_QLINEEDIT)
+        except:
+            self.set_property(name, default_value)
+
+        port.is_exec = False
+        return port
+
     def add_input(self, name='input', default_value='', multi_input=False, display_name=True,
                   color=DEFAULT_PORT_COLOR):
         port = super().add_input(name,multi_input, display_name,color)
@@ -67,12 +82,42 @@ class BaseCustomNode(BaseNode):
         return port
 
     def clearOutputs(self):
-        outputPorts = self._outputs.copy()
-        for out in outputPorts:
-            self.deletePort(out)
+        ports = self._outputs.copy()
+        for p in ports:
+            self.deletePort(p)
+
+    def clearInputs(self):
+        ports = self._inputs.copy()
+        for p in ports:
+            self.deletePort(p)
+
+    @property
+    def inputProperties(self):
+        inputProps = dict()
+        for key,val in self.model._custom_prop.items():
+            if key in self.inputNames:
+                inputProps[key] = val
+            
+        return inputProps
+
+    @property
+    def inputNames(self):
+        return [p.name() for p in self._inputs]
+
+    @property
+    def outputNames(self):
+        return [p.name() for p in self._outputs]
 
     def getOutputPortByName(self, name):
-        return next(p for p in self._outputs if p.name() == name)
+        ports = [p for p in self._outputs if p.name() == name]
+        return ports[0] if len(ports) > 0 else None
+
+    def getInputPortByName(self, name):
+        ports = [p for p in self._inputs if p.name() == name]
+        return ports[0] if len(ports) > 0 else None
+
+    def deleteProperty(self, propertyName):
+        del self.model._custom_prop[propertyName]
 
     def deletePort(self, port):
         portType = port.type_()
@@ -90,6 +135,11 @@ class BaseCustomNode(BaseNode):
 
         self.graph.undo_stack().clear()
 
+        try:
+            self.deleteProperty(port.name())
+        except:
+            pass
+
         del modelPorts[port.name()]
         ports.remove(port)
 
@@ -104,8 +154,6 @@ class BaseCustomNode(BaseNode):
         textItem.setParentItem(None)
         del items[portView]
 
-        del portView
-        del textItem
         nodeView.post_init()
 
     def disconnectPorts(self, source: Port, target: Port):
@@ -165,6 +213,55 @@ class BaseCustomCodeNode(BaseCustomNode):
 
     def generateCode(self, sourceCodeLines, indent):
         return 'None'
+
+@excludeFromRegistration
+class VariableInputCountNode(BaseCustomNode):
+    """
+    This node allows the user to specify a varying amount of inputs.
+    """
+
+    __identifier__ = DEFAULT_IDENTIFIER
+    NODE_NAME = 'Variable Input Count Node'
+
+    def __init__(self):
+        super(VariableInputCountNode, self).__init__()
+
+        self.count = 0
+        self.inputCountInput = self.add_text_input("inputCount", "Input Count")
+        self.inputCountInput.value_changed.connect(lambda k, v: self.refresh())
+
+    def deserialize(self, data):
+        # set properties.
+        for prop in self.model.properties.keys():
+            if prop in data.keys():
+                self.model.set_property(prop, data[prop])
+
+        # set custom properties.
+        for prop, val in data.get('custom', {}).items():
+            try:
+                self.model.set_property(prop, val)
+            except:
+                self.add_input(prop, default_value=val)
+
+    def refresh(self):
+        try:
+            prevCount = self.count
+            self.count = int(self.get_property("inputCount"))
+        except:
+            print("Invalid count input.")
+            return
+
+        customProps = self.model._custom_prop.copy()
+
+        # Delete ports if there are too many:
+        if self.count < prevCount:
+            for i in range(self.count, prevCount):
+                n = f"in{i}"
+                p = self.getInputPortByName(n)
+                self.deletePort(p)
+
+        for i in range(prevCount, self.count):
+            self.add_or_update_input(f"in{i}", customProps.get(f"in{i}"))
 
 @excludeFromRegistration
 class InlineNode(BaseCustomNode):

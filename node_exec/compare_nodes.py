@@ -18,7 +18,11 @@ def less(lhs, rhs):
 def lessEquals(lhs, rhs):
     return f'{lhs} <= {rhs}'
 
-@defNode('Equals', identifier=COMPARE_IDENTIFIER)
+@defInlineNode('Equals', identifier=COMPARE_IDENTIFIER)
 def equals(lhs, rhs):
     return f'{lhs} == {rhs}'
+
+@defNode('Select', identifier=COMPARE_IDENTIFIER)
+def select(condition, trueValue, falseValue):
+    return trueValue if condition else falseValue
 

@@ -9,3 +9,4 @@ import node_exec.collection_nodes
 import node_exec.excel_nodes
 import node_exec.csv_nodes
 import node_exec.table_nodes
+import node_exec.core_nodes

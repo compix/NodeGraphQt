@@ -5,6 +5,7 @@ This module generates python code from a node graph.
 from os import path
 from node_exec import base_nodes
 from node_exec import flow_nodes
+from node_exec import inline_nodes
 
 DEFAULT_INDENT = "    "
 
@@ -26,16 +27,32 @@ def getParamName(port):
 def getInputParamsSource(node):
     params = []
     for inPort in node._inputs:
-        if len(inPort.connected_ports()) > 0:
-            srcOutputPort = inPort.connected_ports()[0]
-            srcNode = srcOutputPort.node()
-            
-            if not inPort.is_exec:
+        if not inPort.is_exec:
+            if len(inPort.connected_ports()) > 0:
+                srcOutputPort = inPort.connected_ports()[0]
+                srcNode = srcOutputPort.node()
+                
                 outputPortIdx = getNonExecutionOutputPorts(srcNode).index(srcOutputPort)
                 varName = getVarNameSource(srcNode,idx=outputPortIdx)
                 params.append(varName)
-        else:
-            params.append(node.getDefaultInput(inPort))
+            else:
+                params.append(node.getDefaultInput(inPort))
+    
+    return params
+
+def getDefaultInputParamsSource(node):
+    params = []
+    for inPort in node._inputs:
+        if not inPort.is_exec:
+            if len(inPort.connected_ports()) > 0:
+                srcOutputPort = inPort.connected_ports()[0]
+                srcNode = srcOutputPort.node()
+                if isinstance(srcNode, inline_nodes.ConstInputNode):
+                    params.append(srcNode.getInlineCode())
+                else:
+                    params.append(node.getDefaultInput(inPort))
+            else:
+                params.append(node.getDefaultInput(inPort))
     
     return params
 
@@ -157,11 +174,12 @@ def getNonExecutionOutputPorts(node):
 
     return ports
 
-def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = ""):
+def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = "", initialParams = None):
     if node == None:
         return
 
-    generateParamSourceCodeLines(node, sourceCodeLines, indent)
+    if initialParams == None:
+        generateParamSourceCodeLines(node, sourceCodeLines, indent)
 
     if isinstance(node, base_nodes.BaseCustomCodeNode):
         node.generateCode(sourceCodeLines, indent)
@@ -174,7 +192,7 @@ def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = ""):
     elif isinstance(node, flow_nodes.WhileLoopNode):
         handleWhileLoopNodeSourceCodeLines(node, sourceCodeLines, indent)
     else:
-        codeLine = getExecuteSource(node, getInputParamsSource(node))
+        codeLine = getExecuteSource(node, getInputParamsSource(node) if initialParams == None else initialParams)
         if len(getNonExecutionOutputPorts(node)) > 0:
             varNames = [getVarNameSource(node, idx) for idx in range(0, len(getNonExecutionOutputPorts(node)))]
             varName = ','.join(varNames)
@@ -182,35 +200,49 @@ def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = ""):
         sourceCodeLines.append(makeCodeLine(codeLine, indent))
         generatePythonExecutionSourceCodeLines(getExecOutNode(node), sourceCodeLines, indent)
 
-def generatePythonCode(graph, node, moduleName, execFuncName, targetFolder):
-    sourceCodeLines = []
-    generatePythonExecutionSourceCodeLines(node, sourceCodeLines)
 
-    # Create an empty python file with the name moduleName:
-    #curFolder = path.dirname(path.abspath(__file__))
-    #srcFilePath = path.join(curFolder, "../test")
-    srcFilePath = path.join(targetFolder, moduleName + ".py")
-    srcFile = open(srcFilePath,"w+")
+class CodeGenerator(object):
+    def __init__(self):
+        pass
 
-    # Generate imports:
-    importLines = []
-    for n in graph.all_nodes():
-        try:
-            importLine = f"import {n.getModule()}"
-            if not importLine in importLines:
-                importLines.append(importLine)
-        except:
-            pass
+    def generatePythonCode(self, graph, node, moduleName, targetFolder):
+        execFuncName = "execute"
+        sourceCodeLines = []
 
-    sourceCode = "\n".join(importLines)
+        startNodeParamValues = getDefaultInputParamsSource(node)
+        startNodeParams = []
+        for i in range(0,len(startNodeParamValues)):
+            startNodeParams.append(f"in{i}")
 
-    # Append source code lines:
-    sourceCode += "\n\ndef " + execFuncName + "():\n"
-    for line in sourceCodeLines:
-        sourceCode += DEFAULT_INDENT + line + "\n"
+        generatePythonExecutionSourceCodeLines(node, sourceCodeLines, initialParams=startNodeParams)
 
-    srcFile.write(sourceCode)
+        # Create an empty python file with the name moduleName:
+        srcFilePath = path.join(targetFolder, moduleName + ".py")
+        srcFile = open(srcFilePath,"w+")
 
-    srcFile.close()
+        # Generate imports:
+        importLines = []
+        for n in graph.all_nodes():
+            try:
+                importLine = f"import {n.getModule()}"
+                if not importLine in importLines:
+                    importLines.append(importLine)
+            except:
+                pass
 
-    return srcFilePath
+        sourceCode = "\n".join(importLines)
+
+        # Append source code lines:
+        startNodeParamsWithInitialValues = []
+        for i in range(0, len(startNodeParamValues)):
+            startNodeParamsWithInitialValues.append(f"in{i}={startNodeParamValues[i]}")
+
+        sourceCode += f"\n\ndef {execFuncName}({','.join(startNodeParamsWithInitialValues)}):\n"
+        for line in sourceCodeLines:
+            sourceCode += DEFAULT_INDENT + line + "\n"
+
+        srcFile.write(sourceCode)
+
+        srcFile.close()
+
+        return srcFilePath

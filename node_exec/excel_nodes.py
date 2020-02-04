@@ -1,6 +1,7 @@
 from node_exec.base_nodes import defNode, defInlineNode
 from node_exec.base_nodes import BaseCustomNode, BaseExecuteNode, InlineNode, BaseCustomCodeNode
 from node_exec import code_generator
+import os 
 
 imported = False
 try:
@@ -16,10 +17,10 @@ class ExcelTable:
         self.sheet = sheet
 
     def getRowValues(self, rowIndex):
-        return self.sheet.row_values(rowIndex)
+        return self.sheet.row_values(rowIndex) if self.sheet != None else []
 
     def getColumnValues(self, colIndex):
-        return self.sheet.col_values(colIndex)
+        return self.sheet.col_values(colIndex) if self.sheet != None else []
 
     def getColumnsWithoutHeader(self):
         return [self.getColumnValues(i)[1:] for i in range(0, self.ncols)]
@@ -29,18 +30,18 @@ class ExcelTable:
 
     @property
     def ncols(self):
-        return self.sheet.ncols
+        return self.sheet.ncols if self.sheet != None else 0
 
     @property
     def nrows(self):
-        return self.sheet.nrows
+        return self.sheet.nrows if self.sheet != None else 0
 
     def getRowsWithoutHeader(self):
         for rowIdx in range(1, self.nrows):
             yield self.getRowValues(rowIdx)
 
     def getCellValue(self, rowIndex, colIndex):
-        return self.sheet.cell_value(rowIndex, colIndex)
+        return self.sheet.cell_value(rowIndex, colIndex) if self.sheet != None else None
 
     def getRowAsDict(self, headerValues, rowValues):
         return dict(zip(headerValues, rowValues))
@@ -48,7 +49,7 @@ class ExcelTable:
 if imported:
     class ExcelSheetProcessorNode(BaseCustomCodeNode):
         __identifier__ = EXCEL_IDENTIFIER
-        NODE_NAME = 'Excel Sheet Processor Node'
+        NODE_NAME = 'Excel Sheet Processor'
 
         def __init__(self):
             super(ExcelSheetProcessorNode, self).__init__()
@@ -84,7 +85,8 @@ if imported:
             sourceCodeLines.append(code_generator.makeCodeLine(f"{headerVar} = {tableVar}.getHeader()", indent))
 
             # Loop body code:
-            tableValueVars = [code_generator.getVarNameSource(self, idx) for idx in range(3, len(code_generator.getNonExecutionOutputPorts(self)))]
+            numNonExecOutputPorts = len(code_generator.getNonExecutionOutputPorts(self))
+            tableValueVars = [code_generator.getVarNameSource(self, idx) for idx in range(3, max(numNonExecOutputPorts, 4))]
             preBodyLines = []
             loopVar = code_generator.getVarNameSource(self, idx=None)
 
@@ -95,6 +97,7 @@ if imported:
                 
             collection = f"{tableVar}.getRowsWithoutHeader()"
             loopConditionCode = code_generator.makeCodeLine(f"for {loopVar} in {collection}:", indent)
+
             preBodyLines.append(code_generator.makeCodeLine(f"{','.join(tableValueVars)} = {loopVar}", indent + code_generator.DEFAULT_INDENT))
             code_generator.expandCodeWithCondition(self.loop_body_port, sourceCodeLines, loopConditionCode, indent, preBodyLines=preBodyLines)
 
@@ -104,7 +107,11 @@ if imported:
 
         @staticmethod
         def createTableFromSheetName(workbookPath, sheetName, encodingOverride=None):
-            return ExcelTable(xlrd.open_workbook(filename=workbookPath,encoding_override=encodingOverride).sheet_by_name(sheetName))
+            if os.path.exists(workbookPath):
+                return ExcelTable(xlrd.open_workbook(filename=workbookPath,encoding_override=encodingOverride).sheet_by_name(sheetName))
+            else:
+                print(f"Warning: The workbook file path \"{workbookPath}\" does not exist.")
+                return ExcelTable(None)
 
         def refresh(self):
             self.firstCall = False
@@ -137,54 +144,6 @@ if imported:
 
                 self.view.post_init()
 
-            except:
-                print("Excel Node: Incorrect input.")
-
-    class ExcelSheetNode(InlineNode):
-        __identifier__ = EXCEL_IDENTIFIER
-        NODE_NAME = 'Excel Sheet Node'
-
-        def __init__(self):
-            super(ExcelSheetNode, self).__init__()
-
-            self.pathInput = self.add_text_input('path', 'Workbook Path')
-            self.sheetInput = self.add_text_input('sheetName', 'Sheet Name')
-            self.encodingOverrideInput = self.add_text_input('encodingOverride', 'Encoding Override')
-
-            self.pathInput.value_changed.connect(lambda k, v: self.refresh())
-            self.sheetInput.value_changed.connect(lambda k, v: self.refresh())
-            self.encodingOverrideInput.value_changed.connect(lambda k, v: self.refresh())
-
-        @staticmethod
-        def createFromSheetName(workbookPath, sheetName, encodingOverride=None):
-            table = ExcelTable(xlrd.open_workbook(filename=workbookPath,encoding_override=encodingOverride).sheet_by_name(sheetName))
-            return [table] + table.getColumnsWithoutHeader()
-
-        def getInlineCode(self):
-            workbookPath = '{!r}'.format(self.get_property('path'))
-            sheetName = '{!r}'.format(self.get_property('sheetName'))
-            encodingOverride = self.get_property('encodingOverride')
-            encoding_override={encodingOverride} if encodingOverride != '' else None
-
-            return f"{self.fullClassName}.createFromSheetName({workbookPath},{sheetName},{encoding_override})"
-
-        def refresh(self):
-            self.firstCall = False
-            self.clearOutputs()
-
-            self.add_output('table')
-
-            workbookPath = self.get_property('path')
-            sheetName = self.get_property('sheetName')
-            encodingOverride = self.get_property('encodingOverride')
-
-            try:
-                self.table = ExcelTable(xlrd.open_workbook(filename=workbookPath,encoding_override=encodingOverride if encodingOverride != '' else None).sheet_by_name(sheetName))
-
-                headerRow = self.table.getRowValues(0)
-
-                for val in headerRow:
-                    self.add_output(val)
             except:
                 print("Excel Node: Incorrect input.")
 

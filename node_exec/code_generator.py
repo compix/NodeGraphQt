@@ -203,7 +203,10 @@ def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = "", i
 
 class CodeGenerator(object):
     def __init__(self):
-        pass
+        self.graphManager = None
+
+    def setGraphManager(self, graphManager):
+        self.graphManager = graphManager
 
     def generatePythonCode(self, graph, node, moduleName, targetFolder):
         execFuncName = "execute"

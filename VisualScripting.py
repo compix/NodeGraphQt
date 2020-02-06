@@ -23,14 +23,14 @@ from PySide2.QtCore import Qt
 from PySide2.QtGui import QStandardItemModel, QStandardItem
 
 class VisualScripting(object):
-    def __init__(self, graphSerializationFolder, parentWindow=None):
+    def __init__(self, graphSerializationFolder, parentWindow=None, codeGenerator=None):
         self.graph = NodeGraph()
         self.graphViewer = self.graph.viewer()
 
         # set up default menu and commands.
         self.fileMenu, self.editMenu = setup_context_menu(self.graph)
 
-        self.graphManager = GraphManager(graphSerializationFolder)
+        self.graphManager = GraphManager(graphSerializationFolder, codeGenerator=codeGenerator)
 
         self.initNodes()
         self.setupPropertiesBin()

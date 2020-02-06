@@ -24,7 +24,8 @@ class GraphManager(object):
         self.codeGenerator = codeGenerator
         if codeGenerator == None:
             self.codeGenerator = CodeGenerator()
-        
+
+        self.codeGenerator.setGraphManager(self)
         self.serializationFolder = serializationFolder
 
         self.graphsFolder = os.path.join(serializationFolder, GraphManager.GRAPHS_FOLDER)
@@ -93,7 +94,8 @@ class GraphManager(object):
         return os.path.join(self.getGraphFolder(graphName), graphName + ".json")
 
     def getPythonCodePath(self, graphName):
-        return os.path.join(self.getGraphFolder(graphName), graphName + ".py")
+        moduleName = self.getModuleNameFromGraphName(graphName)
+        return os.path.join(self.getGraphFolder(graphName), moduleName + ".py")
 
     def getSettingsPath(self, graphName):
         return os.path.join(self.getGraphFolder(graphName), graphName + "_settings.json")
@@ -103,6 +105,9 @@ class GraphManager(object):
 
     def getSessionStartNodeName(self):
         return self.curSession.startNodeName if self.curSession != None else ""
+
+    def getModuleNameFromGraphName(self, graphName):
+        return graphName.replace(" ", "")
 
     def saveGraph(self, graph, graphName, graphCategory, startNodeName='Exec Start'):
         writeGraph = True
@@ -116,7 +121,8 @@ class GraphManager(object):
 
             graph.save_session(self.getGraphFilePath(graphName))
             startNode = graph.get_node_by_name(startNodeName)
-            self.codeGenerator.generatePythonCode(graph, startNode, graphName, graphFolder)
+            moduleName = self.getModuleNameFromGraphName(graphName)
+            self.codeGenerator.generatePythonCode(graph, startNode, moduleName, graphFolder)
 
             settingsFile = self.getSettingsPath(graphName)
             settingsDict = dict()
@@ -149,13 +155,14 @@ class GraphManager(object):
 
         self.saveGraph(self.curSession.graph, self.curSession.graphName, self.curSession.graphCategory, startNodeName=self.curSession.startNodeName)
 
+        moduleName = self.getModuleNameFromGraphName(self.curSession.graphName)
         pythonFile = self.getPythonCodePath(self.curSession.graphName)
         pathonFileDir = os.path.dirname(pythonFile)
 
         if not pathonFileDir in sys.path:
             sys.path.append(pathonFileDir)
 
-        execModule = importlib.import_module(self.curSession.graphName)
+        execModule = importlib.import_module(moduleName)
         importlib.reload(execModule)
         return execModule.execute()
 

@@ -98,7 +98,7 @@ class VisualScripting(object):
         dialog.graphNameLineEdit.setText(currentGraphName)
         self.setupCategoryComboBox(dialog.categoryComboBox)
 
-        allGraphNodeNames = [n.name() for n in self.graph.all_nodes()]
+        allGraphNodeNames = [n.name() for n in self.graph.all_nodes() if n.is_exec]
         for n in allGraphNodeNames:
             dialog.startNodeComboBox.addItem(n)
         

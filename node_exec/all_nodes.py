@@ -10,6 +10,7 @@ import node_exec.excel_nodes
 import node_exec.csv_nodes
 import node_exec.table_nodes
 import node_exec.core_nodes
+import node_exec.filesystem_nodes
 
 import os
 # Add nodes that are only supported on windows:

@@ -328,7 +328,10 @@ def defNode(name, isExecutable=False, returnNames=[], identifier=DEFAULT_IDENTIF
     """
 
     def wrapper(fn):
-        class CustomNode(BaseCustomNode):
+        signature = inspect.signature(fn)
+        hasVariableNumberOfArguments = any(v.kind == inspect.Parameter.VAR_POSITIONAL for v in signature.parameters.values())
+
+        class CustomNode(VariableInputCountNode if hasVariableNumberOfArguments else BaseCustomNode):
             __identifier__ = identifier
             NODE_NAME = name
 
@@ -344,11 +347,11 @@ def defNode(name, isExecutable=False, returnNames=[], identifier=DEFAULT_IDENTIF
 
                 if len(returnNames) == 0 and contains_explicit_return(fn):
                     self.add_output('return')
-
-                signature = inspect.signature(fn)
+                
                 for k, v in signature.parameters.items():
-                    defaultValue = v.default if v.default is not inspect.Parameter.empty else ''
-                    self.add_input(k, default_value=defaultValue)
+                    if not v.kind in [inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL]:
+                        defaultValue = v.default if v.default is not inspect.Parameter.empty else ''
+                        self.add_input(k, default_value=defaultValue)
 
                 #for param in fn.__code__.co_varnames:
                 #    self.add_input(param)

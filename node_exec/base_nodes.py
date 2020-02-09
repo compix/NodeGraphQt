@@ -43,6 +43,10 @@ class BaseCustomNode(BaseNode):
         self.is_exec = False
 
     @property
+    def importLines(self):
+        return []
+
+    @property
     def fullClassName(self):
         return f"{self.__class__.__module__}.{self.__class__.__name__}"
 

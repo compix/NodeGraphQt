@@ -224,12 +224,13 @@ class CodeGenerator(object):
         srcFile = open(srcFilePath,"w+")
 
         # Generate imports:
-        importLines = []
+        importLines = set()
         for n in graph.all_nodes():
+            importLines = importLines.union(n.importLines)
             try:
                 importLine = f"import {n.getModule()}"
                 if not importLine in importLines:
-                    importLines.append(importLine)
+                    importLines.add(importLine)
             except:
                 pass
 

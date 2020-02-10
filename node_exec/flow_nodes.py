@@ -1,4 +1,5 @@
-from node_exec.base_nodes import BaseExecuteNode
+from node_exec.base_nodes import BaseExecuteNode, BaseCustomCodeNode
+from node_exec import code_generator
 
 FLOW_CONTROL_IDENTIFIER = 'Flow Control'
 
@@ -56,3 +57,37 @@ class IfNode(BaseExecuteNode):
 
         self.add_exec_input('Execute')
         self._in = self.add_input('Condition')
+
+class TryExceptFinallyNode(BaseCustomCodeNode):
+    __identifier__ = FLOW_CONTROL_IDENTIFIER
+    NODE_NAME = 'Try Except Finally'
+
+    def __init__(self):
+        super().__init__()
+
+        self.add_exec_input('Execute')
+
+        self.try_body_port = self.add_exec_output('Try')
+        self.except_body_port = self.add_exec_output('Except')
+        self.finally_body_port = self.add_exec_output('Finally')
+        self.completed_port = self.add_exec_output('After Try Block')
+
+        self.exception_var_port = self.add_output("exception")
+
+    def generateCode(self, sourceCodeLines, indent):
+        exceptionVar = code_generator.getVarNameSource(self)
+
+        tryCode = code_generator.makeCodeLine(f"try:", indent)
+
+        if len(self.exception_var_port.connected_ports()) > 0:
+            exceptCode = code_generator.makeCodeLine(f"except Exception as {exceptionVar}:", indent)
+        else:
+            exceptCode = code_generator.makeCodeLine(f"except:", indent)
+            
+        finallyCode = code_generator.makeCodeLine(f"finally:", indent)
+
+        code_generator.expandCodeWithCondition(self.try_body_port, sourceCodeLines, tryCode, indent)
+        code_generator.expandCodeWithCondition(self.except_body_port, sourceCodeLines, exceptCode, indent)
+        code_generator.expandCodeWithCondition(self.finally_body_port, sourceCodeLines, finallyCode, indent)
+
+        code_generator.expandExecCode(self.completed_port, sourceCodeLines, indent)

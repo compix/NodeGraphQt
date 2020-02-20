@@ -43,6 +43,10 @@ class BaseCustomNode(BaseNode):
         self.is_exec = False
 
     @property
+    def isViableStartNode(self):
+        return self.is_exec
+
+    @property
     def importLines(self):
         return []
 
@@ -58,10 +62,10 @@ class BaseCustomNode(BaseNode):
 
     def getDefaultInput(self, port):
         prop = self.get_property(port.name())
-        if is_float(prop) or is_int(prop):
-            return prop
-        else:
-            return '{!r}'.format(prop)
+        if prop == '':
+            prop = None
+
+        return prop
 
     def add_or_update_input(self, name='input', default_value='', multi_input=False, display_name=True,
                   color=DEFAULT_PORT_COLOR):
@@ -356,9 +360,6 @@ def defNode(name, isExecutable=False, returnNames=[], identifier=DEFAULT_IDENTIF
                     if not v.kind in [inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL]:
                         defaultValue = v.default if v.default is not inspect.Parameter.empty else ''
                         self.add_input(k, default_value=defaultValue)
-
-                #for param in fn.__code__.co_varnames:
-                #    self.add_input(param)
 
             def getFunctionName(self):
                 return f"{fn.__module__}.{fn.__name__}"

@@ -74,6 +74,10 @@ class TryExceptFinallyNode(BaseCustomCodeNode):
 
         self.exception_var_port = self.add_output("exception")
 
+    @property
+    def isViableStartNode(self):
+        return False
+
     def generateCode(self, sourceCodeLines, indent):
         exceptionVar = code_generator.getVarNameSource(self)
 

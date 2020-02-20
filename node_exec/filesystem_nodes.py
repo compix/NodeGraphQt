@@ -110,7 +110,7 @@ class FileWalker(BaseCustomCodeNode):
             self.loop_body_port = self.add_exec_output('Iteration')
             self.loop_complete_port = self.add_exec_output('Completed')
 
-            self.add_output('file')
+            self.add_output('filePath')
             self.add_input('directory')
 
         @property

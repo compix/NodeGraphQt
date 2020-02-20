@@ -36,7 +36,7 @@ def getInputParamsSource(node):
                 varName = getVarNameSource(srcNode,idx=outputPortIdx)
                 params.append(varName)
             else:
-                params.append(node.getDefaultInput(inPort))
+                params.append(str(node.getDefaultInput(inPort)))
     
     return params
 

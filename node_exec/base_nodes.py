@@ -11,6 +11,7 @@ EXECUTE_PORT_COLOR = (0,0,0)
 
 
 DEFAULT_IDENTIFIER = 'Default'
+PROPERTY_PREFIX = "p_"
 
 def excludeFromRegistration(cls):
     node_exec.nodes_cfg.NODES_TO_REGISTER.remove(cls)
@@ -61,11 +62,14 @@ class BaseCustomNode(BaseNode):
         return self.__class__.__module__
 
     def getDefaultInput(self, port):
-        prop = self.get_property(port.name())
+        prop = self.get_property(self.getPropertyName(port.name()))
         if prop == '':
             prop = None
 
         return prop
+
+    def getPropertyName(self, name):
+        return f"{PROPERTY_PREFIX}{name}"
 
     def add_or_update_input(self, name='input', default_value='', multi_input=False, display_name=True,
                   color=DEFAULT_PORT_COLOR):
@@ -75,9 +79,9 @@ class BaseCustomNode(BaseNode):
             port = super().add_input(name,multi_input, display_name,color)
 
         try:
-            self.create_property(name, default_value, widget_type=NODE_PROP_QLINEEDIT)
+            self.create_property(self.getPropertyName(name), default_value, widget_type=NODE_PROP_QLINEEDIT)
         except:
-            self.set_property(name, default_value)
+            self.set_property(self.getPropertyName(name), default_value)
 
         port.is_exec = False
         return port
@@ -85,7 +89,7 @@ class BaseCustomNode(BaseNode):
     def add_input(self, name='input', default_value='', multi_input=False, display_name=True,
                   color=DEFAULT_PORT_COLOR):
         port = super().add_input(name,multi_input, display_name,color)
-        self.create_property(name, default_value, widget_type=NODE_PROP_QLINEEDIT)
+        self.create_property(self.getPropertyName(name), default_value, widget_type=NODE_PROP_QLINEEDIT)
         port.is_exec = False
         return port
 
@@ -144,11 +148,11 @@ class BaseCustomNode(BaseNode):
         self.graph.undo_stack().clear()
 
         try:
-            self.deleteProperty(port.name())
+            self.deleteProperty(self.getPropertyName(port.name()))
         except:
             pass
 
-        del modelPorts[port.name()]
+        del modelPorts[self.getPropertyName(port.name())]
         ports.remove(port)
 
         connectedPorts = port.connected_ports().copy()
@@ -203,7 +207,7 @@ class BaseCustomNode(BaseNode):
         return port
 
     def add_button(self, name, onClick):
-        self.create_property(name, '')
+        self.create_property(self.getPropertyName(name), '')
         widget = NodeButton(onClick, parent=self.view, name=name)
         self.view.add_widget(widget)
 
@@ -235,8 +239,14 @@ class VariableInputCountNode(BaseCustomNode):
         super(VariableInputCountNode, self).__init__()
 
         self.count = 0
-        self.inputCountInput = self.add_text_input("inputCount", "Input Count")
+        self.inputCountInput = self.add_text_input(self.getPropertyName("inputCount"), "Input Count")
         self.inputCountInput.value_changed.connect(lambda k, v: self.refresh())
+
+    def removePrefix(self, text, prefix):
+        if text.startswith(prefix):
+            return text[len(prefix):]
+
+        return text
 
     def deserialize(self, data):
         # set properties.
@@ -249,12 +259,12 @@ class VariableInputCountNode(BaseCustomNode):
             try:
                 self.model.set_property(prop, val)
             except:
-                self.add_input(prop, default_value=val)
+                self.add_input(self.removePrefix(prop, PROPERTY_PREFIX), default_value=val)
 
     def refresh(self):
         try:
             prevCount = self.count
-            self.count = int(self.get_property("inputCount"))
+            self.count = int(self.get_property(self.getPropertyName("inputCount")))
         except:
             print("Invalid count input.")
             return
@@ -269,7 +279,7 @@ class VariableInputCountNode(BaseCustomNode):
                 self.deletePort(p)
 
         for i in range(prevCount, self.count):
-            self.add_or_update_input(f"in{i}", customProps.get(f"in{i}"))
+            self.add_or_update_input(f"in{i}", customProps.get(self.getPropertyName(f"in{i}")))
 
 @excludeFromRegistration
 class InlineNode(BaseCustomNode):
@@ -359,7 +369,7 @@ def defNode(name, isExecutable=False, returnNames=[], identifier=DEFAULT_IDENTIF
                 for k, v in signature.parameters.items():
                     if not v.kind in [inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL]:
                         defaultValue = v.default if v.default is not inspect.Parameter.empty else ''
-                        self.add_input(k, default_value=defaultValue)
+                        self.add_input(k, default_value=(f"\"{defaultValue}\"" if isinstance(defaultValue, str) else defaultValue))
 
             def getFunctionName(self):
                 return f"{fn.__module__}.{fn.__name__}"
@@ -393,7 +403,7 @@ def defInlineNode(name, isExecutable=False, returnNames=[], identifier=DEFAULT_I
                 signature = inspect.signature(fn)
                 for k, v in signature.parameters.items():
                     defaultValue = v.default if v.default is not inspect.Parameter.empty else ''
-                    self.add_input(k, default_value=defaultValue)
+                    self.add_input(k, default_value=(f"\"{defaultValue}\"" if isinstance(defaultValue, str) else defaultValue))
 
             def getInlineCode(self, *args, **kwargs):
                 return fn(*args, **kwargs)

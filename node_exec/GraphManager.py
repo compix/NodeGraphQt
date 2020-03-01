@@ -68,6 +68,10 @@ class GraphManager(object):
         availableGraphNames = self.availableGraphNames
         for graphName in availableGraphNames:
             graphSettings = self.loadGraphSettings(graphName)
+
+            if graphSettings == None:
+                continue
+
             category = graphSettings.get('category')
 
             if category == None:
@@ -143,8 +147,11 @@ class GraphManager(object):
     def loadGraphSettings(self, graphName):
         settings = None
 
-        with open(self.getSettingsPath(graphName), mode='r') as f:
-            settings = json.load(f)
+        try:
+            with open(self.getSettingsPath(graphName), mode='r') as f:
+                settings = json.load(f)
+        except Exception as e:
+            print(e)
 
         return settings
         

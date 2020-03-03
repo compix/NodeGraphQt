@@ -66,6 +66,9 @@ class BaseCustomNode(BaseNode):
         if prop == '':
             prop = None
 
+        if isinstance(prop, str):
+            return '{!r}'.format(prop)[1:-1]
+
         return prop
 
     def getPropertyName(self, name):

@@ -25,8 +25,8 @@ class ExcelTable:
     def getColumnsWithoutHeader(self):
         return [self.getColumnValues(i)[1:] for i in range(0, self.ncols)]
 
-    def getHeader(self):
-        return self.getRowValues(0)
+    def getHeader(self,rowIndex=0):
+        return self.getRowValues(rowIndex)
 
     @property
     def ncols(self):
@@ -63,26 +63,23 @@ if imported:
             self.add_output('header')
             self.entry_port = self.add_output('entry as dict')
 
-            self.pathInput = self.add_text_input('path', 'Workbook Path')
-            self.sheetInput = self.add_text_input('sheetName', 'Sheet Name')
-            self.encodingOverrideInput = self.add_text_input('encodingOverride', 'Encoding Override')
+            #self.add_button("Refresh", self.refresh)
 
-            self.pathInput.value_changed.connect(lambda k, v: self.refresh())
-            self.sheetInput.value_changed.connect(lambda k, v: self.refresh())
-            self.encodingOverrideInput.value_changed.connect(lambda k, v: self.refresh())
+            self.workbookPathInput = self.add_input("workbookPath")
+            self.sheetNameInput = self.add_input("sheetName")
+            self.encodingInput = self.add_input("encodingOverride", default_value=None)
+            self.headerRowIndexInput = self.add_input("headerRowIndex", default_value=0)
 
         def generateCode(self, sourceCodeLines, indent):
+            inputParams = code_generator.getInputParamsSource(self)
+
             # Table output code:
-            workbookPath = '{!r}'.format(self.get_property('path'))
-            sheetName = '{!r}'.format(self.get_property('sheetName'))
-            encodingOverride = self.get_property('encodingOverride')
-            encoding_override={encodingOverride} if encodingOverride != '' else None
             tableVar = code_generator.getVarNameSource(self, 0)
-            tableCreationCode =  f"{self.fullClassName}.createTableFromSheetName({workbookPath},{sheetName},{encoding_override})"
+            tableCreationCode =  f"{self.fullClassName}.createTableFromSheetName({','.join(inputParams[0:-1])})"
             tableInitCode = code_generator.makeCodeLine(f"{tableVar} = {tableCreationCode}", indent)
             sourceCodeLines.append(tableInitCode)
             headerVar = code_generator.getVarNameSource(self, 1)
-            sourceCodeLines.append(code_generator.makeCodeLine(f"{headerVar} = {tableVar}.getHeader()", indent))
+            sourceCodeLines.append(code_generator.makeCodeLine(f"{headerVar} = {tableVar}.getHeader({inputParams[-1]})", indent))
 
             # Loop body code:
             numNonExecOutputPorts = len(code_generator.getNonExecutionOutputPorts(self))
@@ -114,16 +111,16 @@ if imported:
                 return ExcelTable(None)
 
         def refresh(self):
-            self.firstCall = False
-
-            workbookPath = self.get_property('path')
-            sheetName = self.get_property('sheetName')
-            encodingOverride = self.get_property('encodingOverride')
-
             try:
+                workbookPath = code_generator.getDefaultInputParamSource(self, self.workbookPathInput)[1:-1]
+                sheetName = code_generator.getDefaultInputParamSource(self, self.sheetNameInput)[1:-1]
+                encodingOverride = code_generator.getDefaultInputParamSource(self, self.encodingInput)
+                encodingOverride = encodingOverride[1:-1] if isinstance(encodingOverride, str) else None
+                headerRowIndex = int(code_generator.getDefaultInputParamSource(self, self.headerRowIndexInput))
+
                 self.table = ExcelTable(xlrd.open_workbook(filename=workbookPath,encoding_override=encodingOverride if encodingOverride != '' else None).sheet_by_name(sheetName))
 
-                headerRow = self.table.getRowValues(0)
+                headerRow = self.table.getHeader(headerRowIndex)
                 headerPortNames = self.outputNames[5:]
 
                 for portName in headerPortNames:
@@ -132,7 +129,7 @@ if imported:
 
                 for val in headerRow:
                     if not val in headerPortNames:
-                        self.add_output(val)
+                        self.add_output(str(val))
                     else:
                         port = self.getOutputPortByName(val)
                         self._outputs.remove(port)

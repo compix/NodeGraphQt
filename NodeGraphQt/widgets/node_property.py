@@ -79,6 +79,10 @@ class NodeBaseWidget(QtWidgets.QGraphicsProxyWidget):
     def name(self):
         return self._name
 
+    @property
+    def has_property(self):
+        return True
+
 
 class NodeComboBox(NodeBaseWidget):
     """

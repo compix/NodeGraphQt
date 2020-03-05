@@ -210,7 +210,6 @@ class BaseCustomNode(BaseNode):
         return port
 
     def add_button(self, name, onClick):
-        self.create_property(self.getPropertyName(name), '')
         widget = NodeButton(onClick, parent=self.view, name=name)
         self.view.add_widget(widget)
 
@@ -422,7 +421,7 @@ class NodeButton(NodeBaseWidget):
     NodeButton Node Widget.
     """
 
-    def __init__(self, onClick, parent=None, name='', label='', text=''):
+    def __init__(self, onClick, parent=None, name='', label=''):
         super(NodeButton, self).__init__(parent, name, label)
         self.btn = QtWidgets.QPushButton()
         self.btn.setText(name)
@@ -448,3 +447,7 @@ class NodeButton(NodeBaseWidget):
     @value.setter
     def value(self, text=''):
         pass
+
+    @property
+    def has_property(self):
+        return False

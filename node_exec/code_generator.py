@@ -40,19 +40,26 @@ def getInputParamsSource(node):
     
     return params
 
+def getDefaultInputParamSource(node, inPort):
+    if not inPort.is_exec:
+        if len(inPort.connected_ports()) > 0:
+            srcOutputPort = inPort.connected_ports()[0]
+            srcNode = srcOutputPort.node()
+            if isinstance(srcNode, inline_nodes.ConstInputNode):
+                return srcNode.getInlineCode()
+            else:
+                return node.getDefaultInput(inPort)
+        else:
+            return node.getDefaultInput(inPort)
+    
+    return None
+
 def getDefaultInputParamsSource(node):
     params = []
     for inPort in node._inputs:
-        if not inPort.is_exec:
-            if len(inPort.connected_ports()) > 0:
-                srcOutputPort = inPort.connected_ports()[0]
-                srcNode = srcOutputPort.node()
-                if isinstance(srcNode, inline_nodes.ConstInputNode):
-                    params.append(srcNode.getInlineCode())
-                else:
-                    params.append(node.getDefaultInput(inPort))
-            else:
-                params.append(node.getDefaultInput(inPort))
+        param = getDefaultInputParamSource(node, inPort)
+        if param != None:
+            params.append(param)
     
     return params
 

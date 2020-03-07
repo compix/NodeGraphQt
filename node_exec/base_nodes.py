@@ -1,5 +1,6 @@
 from NodeGraphQt.base.port import Port
 from NodeGraphQt import BaseNode
+from NodeGraphQt.base import node
 from NodeGraphQt.constants import NODE_PROP_QLINEEDIT
 from NodeGraphQt import QtWidgets
 from NodeGraphQt.widgets.node_property import _NodeGroupBox, NodeBaseWidget
@@ -212,6 +213,26 @@ class BaseCustomNode(BaseNode):
     def add_button(self, name, onClick):
         widget = NodeButton(onClick, parent=self.view, name=name)
         self.view.add_widget(widget)
+
+    def add_combo_menu(self, name='', label='', items=None, tab=None):
+        """
+        Create a custom property and embed a
+        :class:`PySide2.QtWidgets.QComboBox` widget into the node.
+
+        Args:
+            name (str): name for the custom property.
+            label (str): label to be displayed.
+            items (list[str]): items to be added into the menu.
+            tab (str): name of the widget tab to display in.
+        """
+        items = items or []
+        self.create_property(name, items[0] if len(items) > 0 else None, items=items, widget_type=node.NODE_PROP_QCOMBO, tab=tab)
+
+        widget = node.NodeComboBox(self.view, name, label, items)
+        widget.value_changed.connect(lambda k, v: self.set_property(k, v))
+        self.view.add_widget(widget)
+
+        return widget
 
 @excludeFromRegistration
 class BaseCustomCodeNode(BaseCustomNode):

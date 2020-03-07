@@ -6,6 +6,7 @@ from os import path
 from node_exec import base_nodes
 from node_exec import flow_nodes
 from node_exec import inline_nodes
+import VisualScripting
 
 DEFAULT_INDENT = "    "
 
@@ -13,7 +14,7 @@ def isExecNode(node):
     return node.is_exec
 
 def getExecuteSource(node, params):
-    if isinstance(node, base_nodes.InlineNode):
+    if isinstance(node, base_nodes.InlineNode) or isinstance(node, VisualScripting.node_exec.base_nodes.InlineNode):
         return node.getInlineCode(*params)
     else:
         return f"{node.getFunctionName()}({','.join(params)})"

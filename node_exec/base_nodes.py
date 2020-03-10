@@ -6,6 +6,7 @@ from NodeGraphQt import QtWidgets
 from NodeGraphQt.widgets.node_property import _NodeGroupBox, NodeBaseWidget
 from NodeGraphQt.constants import IN_PORT, OUT_PORT
 import node_exec.nodes_cfg
+from node_exec.custom_widgets.TextEditNodeWidget import TextEditNodeWidget
 
 DEFAULT_PORT_COLOR = (0,128,0)
 EXECUTE_PORT_COLOR = (0,0,0)
@@ -233,6 +234,24 @@ class BaseCustomNode(BaseNode):
         self.view.add_widget(widget)
 
         return widget
+
+    def addTextEdit(self, name='', label='', text='', tab=None):
+            """
+            Create a custom property and embed a
+            :class:`PySide2.QtWidgets.QTextEdit` widget into the node.
+
+            Args:
+                name (str): name for the custom property.
+                label (str): label to be displayed.
+                text (str): pre filled text.
+                tab (str): name of the widget tab to display in.
+            """
+            self.create_property(name, text, widget_type=NODE_PROP_QLINEEDIT, tab=tab)
+            widget = TextEditNodeWidget(self.view, name, label, text)
+            widget.value_changed.connect(lambda k, v: self.set_property(k, v))
+            self.view.add_widget(widget)
+
+            return widget
 
 @excludeFromRegistration
 class BaseCustomCodeNode(BaseCustomNode):

@@ -9,7 +9,7 @@ class _NodeGroupBox(QtWidgets.QGroupBox):
 
     def __init__(self, label, parent=None):
         super(_NodeGroupBox, self).__init__(parent)
-        margin = (0, 0, 0, 0)
+        margin = (0, 5, 0, 0)
         padding_top = '14px'
         if label == '':
             margin = (0, 2, 0, 0)
@@ -95,6 +95,7 @@ class NodeComboBox(NodeBaseWidget):
         self._combo = QtWidgets.QComboBox()
         self._combo.setStyleSheet(STYLE_QCOMBOBOX)
         self._combo.setMinimumHeight(24)
+        self._combo.setMinimumWidth(200)
         self._combo.currentIndexChanged.connect(self._value_changed)
         list_view = QtWidgets.QListView(self._combo)
         list_view.setStyleSheet(STYLE_QLISTVIEW)

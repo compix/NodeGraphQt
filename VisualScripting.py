@@ -14,8 +14,6 @@ from NodeGraphQt import (NodeGraph,
 from NodeGraphQt import QtWidgets, QtCore, PropertiesBinWidget, NodeTreeWidget, QtGui
 from PySide2 import QtUiTools
 
-# import example base_nodes from the "example_nodes" package
-from example_nodes import basic_nodes, widget_nodes
 from node_exec.GraphManager import GraphManager
 import node_exec.NodeGraphQt_mod
 from PySide2.QtWidgets import QDialog
@@ -156,7 +154,7 @@ class VisualScripting(object):
     def initNodes(self):
         for n in node_exec.nodes_cfg.NODES_TO_REGISTER:
             self.graph.register_node(n)
-        
+
         self.graph.register_node(BackdropNode)
 
         self.nodeTree = NodeTreeWidget(node_graph=self.graph)

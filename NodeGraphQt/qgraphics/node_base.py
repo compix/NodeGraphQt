@@ -334,9 +334,10 @@ class NodeItem(AbstractNodeItem):
             wid_height = 0.0
             for w in self._widgets.values():
                 wid_height += w.boundingRect().height()
-            wid_height += wid_height / len(self._widgets.values())
+            #wid_height += wid_height / len(self._widgets.values())
+
             if wid_height > height:
-                height = wid_height
+                height += wid_height
 
         width += add_w
         height += add_h

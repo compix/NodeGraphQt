@@ -1,4 +1,4 @@
-from node_exec.base_nodes import InlineNode, defInlineNode, excludeFromRegistration
+from node_exec.base_nodes import InlineNode, excludeFromRegistration
 
 CONSTEXPR_IDENTIFIER = 'Const'
 
@@ -8,9 +8,10 @@ class ConstInputNode(InlineNode):
     NODE_NAME = 'Const Input Node'
 
     def __init__(self):
-        super(ConstInputNode, self).__init__()
+        super().__init__()
 
-        self.add_text_input('constant', 'Constant', tab='widgets')
+        #self.add_text_input('constant', 'Constant', tab='widgets')
+        self.addTextEdit('constant', 'Constant', tab='widgets')
         self.add_output('return')
 
 class ConstantStringNode(ConstInputNode):

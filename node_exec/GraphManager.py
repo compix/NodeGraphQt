@@ -8,7 +8,6 @@ from PySide2.QtWidgets import QMessageBox
 import json
 import sys
 import importlib
-from node_exec.code_generator import CodeGenerator
 
 class Session(object):
     def __init__(self, graphName, graphCategory, startNodeName, graph):
@@ -23,7 +22,7 @@ class GraphManager(object):
     def __init__(self, serializationFolder, codeGenerator = None):
         self.codeGenerator = codeGenerator
         if codeGenerator == None:
-            self.codeGenerator = CodeGenerator()
+            self.codeGenerator = node_exec.code_generator.CodeGenerator()
 
         self.codeGenerator.setGraphManager(self)
         self.serializationFolder = serializationFolder

@@ -1,4 +1,4 @@
-from VisualScripting.node_exec.base_nodes import defNode, defInlineNode
+from node_exec.base_nodes import defNode, defInlineNode
 import subprocess
 import os
 

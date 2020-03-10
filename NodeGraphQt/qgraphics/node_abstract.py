@@ -26,6 +26,9 @@ class AbstractNodeItem(QtWidgets.QGraphicsItem):
         self._width = NODE_WIDTH
         self._height = NODE_HEIGHT
 
+        self.preInitHandlers = []
+        self.postInitHandlers = []
+
     def __repr__(self):
         return '{}.{}(\'{}\')'.format(
             self.__module__, self.__class__.__name__, self.name)
@@ -41,6 +44,12 @@ class AbstractNodeItem(QtWidgets.QGraphicsItem):
         self._properties['selected'] = selected
         super(AbstractNodeItem, self).setSelected(selected)
 
+    def registerPreInitHandler(self, handler):
+        self.preInitHandlers.append(handler)
+
+    def registerPostInitHandler(self, handler):
+        self.postInitHandlers.append(handler)
+
     def pre_init(self, viewer, pos=None):
         """
         Called before node has been added into the scene.
@@ -49,7 +58,8 @@ class AbstractNodeItem(QtWidgets.QGraphicsItem):
             viewer (NodeGraphQt.widgets.viewer.NodeViewer): main viewer.
             pos (tuple): the cursor pos if node is called with tab search.
         """
-        pass
+        for handler in self.preInitHandlers:
+            handler(viewer, pos)
 
     def post_init(self, viewer, pos=None):
         """
@@ -59,7 +69,8 @@ class AbstractNodeItem(QtWidgets.QGraphicsItem):
             viewer (NodeGraphQt.widgets.viewer.NodeViewer): main viewer
             pos (tuple): the cursor pos if node is called with tab search.
         """
-        pass
+        for handler in self.postInitHandlers:
+            handler(viewer, pos)
 
     @property
     def id(self):

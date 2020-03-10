@@ -9,8 +9,8 @@ from node_exec import all_nodes
 
 from NodeGraphQt import (NodeGraph,
                          BaseNode,
-                         BackdropNode,
-                         setup_context_menu)
+                         BackdropNode)
+from NodeGraphQt.base import actions
 from NodeGraphQt import QtWidgets, QtCore, PropertiesBinWidget, NodeTreeWidget, QtGui
 from PySide2 import QtUiTools
 
@@ -19,14 +19,13 @@ import node_exec.NodeGraphQt_mod
 from PySide2.QtWidgets import QDialog
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QStandardItemModel, QStandardItem
+from distutils.version import LooseVersion
+import subprocess
 
 class VisualScripting(object):
     def __init__(self, graphSerializationFolder, parentWindow=None, codeGenerator=None):
         self.graph = NodeGraph()
         self.graphViewer = self.graph.viewer()
-
-        # set up default menu and commands.
-        self.fileMenu, self.editMenu = setup_context_menu(self.graph)
 
         self.graphManager = GraphManager(graphSerializationFolder, codeGenerator=codeGenerator)
 
@@ -41,7 +40,14 @@ class VisualScripting(object):
         self.splitter.addWidget(self.graphViewer)
         self.splitter.addWidget(self.propertiesBin)
 
-        self.setupMenuBar()
+        self.setupMenuBar(self.graph)
+
+    def openInVisualStudioCode(self):
+        sessionGraphName = self.graphManager.getSessionGraphName()
+        if sessionGraphName != "" and sessionGraphName != None:
+            codePath = self.graphManager.getPythonCodePath(sessionGraphName)
+            print(codePath)
+            subprocess.Popen(f'code {os.path.normpath(codePath)}', shell=True)
 
     def loadUI(self, relUIPath):
         uiFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), relUIPath)
@@ -50,12 +56,76 @@ class VisualScripting(object):
         loader = QtUiTools.QUiLoader()
         return loader.load(uiFile)
 
-    def setupMenuBar(self):
+    # Modified setup_context_menu from NodeGraphQt.base.actions
+    def setupMenuBar(self, graph : NodeGraph):
+        rootMenu = graph.context_menu()
+
+        fileMenu = rootMenu.add_menu('&File')
+        editMenu = rootMenu.add_menu('&Edit')
+
+        # create "File" menu.
+        fileMenu.add_command('Open Graph...',
+                            lambda: actions._open_session(graph),
+                            QtGui.QKeySequence.Open)
+        fileMenu.add_command('Export Graph...',
+                            lambda: actions._save_session(graph),
+                            QtGui.QKeySequence.Save)
+        fileMenu.add_command('Export Graph As...',
+                            lambda: actions._save_session_as(graph),
+                            'Ctrl+Shift+s')
+        fileMenu.add_command('Clear', lambda: actions._clear_session(graph))
+
+        fileMenu.add_separator()
+
+        fileMenu.add_command('Zoom In', lambda: actions._zoom_in(graph), '=')
+        fileMenu.add_command('Zoom Out', lambda: actions._zoom_out(graph), '-')
+        fileMenu.add_command('Reset Zoom', graph.reset_zoom, 'h')
+
+        # create "Edit" menu.
+        undo_actn = graph.undo_stack().createUndoAction(graph.viewer(), '&Undo')
+        if LooseVersion(QtCore.qVersion()) >= LooseVersion('5.10'):
+            undo_actn.setShortcutVisibleInContextMenu(True)
+        undo_actn.setShortcuts(QtGui.QKeySequence.Undo)
+        editMenu.qmenu.addAction(undo_actn)
+
+        redo_actn = graph.undo_stack().createRedoAction(graph.viewer(), '&Redo')
+        if LooseVersion(QtCore.qVersion()) >= LooseVersion('5.10'):
+            redo_actn.setShortcutVisibleInContextMenu(True)
+        redo_actn.setShortcuts(QtGui.QKeySequence.Redo)
+        editMenu.qmenu.addAction(redo_actn)
+
+        editMenu.add_separator()
+        editMenu.add_command('Clear Undo History', lambda: actions._clear_undo(graph))
+        editMenu.add_separator()
+
+        editMenu.add_command('Copy', graph.copy_nodes, QtGui.QKeySequence.Copy)
+        editMenu.add_command('Paste', graph.paste_nodes, QtGui.QKeySequence.Paste)
+        editMenu.add_command('Delete',
+                            lambda: graph.delete_nodes(graph.selected_nodes()),
+                            QtGui.QKeySequence.Delete)
+
+        editMenu.add_separator()
+
+        editMenu.add_command('Select all', graph.select_all, 'Ctrl+A')
+        editMenu.add_command('Deselect all', graph.clear_selection, 'Ctrl+Shift+A')
+        editMenu.add_command('Enable/Disable',
+                            lambda: graph.disable_nodes(graph.selected_nodes()),
+                            'd')
+
+        editMenu.add_command('Duplicate',
+                            lambda: graph.duplicate_nodes(graph.selected_nodes()),
+                            'Alt+c')
+        editMenu.add_command('Center Selection',
+                            graph.fit_to_selection,
+                            'f')
+
+        editMenu.add_separator()
+
         menuBar = QtWidgets.QMenuBar()
         sessionMenu = QtWidgets.QMenu("Session")
 
-        menuBar.addMenu(self.fileMenu)
-        menuBar.addMenu(self.editMenu)
+        menuBar.addMenu(fileMenu.qmenu)
+        menuBar.addMenu(editMenu.qmenu)
         menuBar.addMenu(sessionMenu)
         menuBar.setMaximumHeight(20)
 
@@ -69,9 +139,14 @@ class VisualScripting(object):
         self.runAction.triggered.connect(self.onRun)
         self.runAction.setShortcut(QtGui.QKeySequence("R"))
 
+        self.openInCode = QtWidgets.QAction("Show Code In Visual Studio Code")
+        self.openInCode.triggered.connect(self.openInVisualStudioCode)
+        self.openInCode.setShortcut(QtGui.QKeySequence("Q"))
+
         sessionMenu.addAction(self.saveAction)
         sessionMenu.addAction(self.loadAction)
         sessionMenu.addAction(self.runAction)
+        sessionMenu.addAction(self.openInCode)
 
         self.window.verticalLayout.insertWidget(0, menuBar)
 

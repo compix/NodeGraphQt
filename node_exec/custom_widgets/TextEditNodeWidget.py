@@ -1,17 +1,14 @@
 from NodeGraphQt.widgets.node_property import NodeBaseWidget, _NodeGroupBox, Z_VAL_NODE_WIDGET, STYLE_QLINEEDIT
 from NodeGraphQt.qgraphics.node_backdrop import BackdropSizer, NODE_SEL_BORDER_COLOR
+from NodeGraphQt.qgraphics.node_base import NodeItem
 from PySide2 import QtWidgets, QtCore, QtGui
 
 class TextSizer(QtWidgets.QGraphicsItem):
     """
-    Sizer item for resizing a backdrop item.
-
-    Args:
-        parent (BackdropNodeItem): the parent node item.
-        size (float): sizer size.
+    Sizer item for resizing a TextEditNodeWidget.
     """
 
-    def __init__(self, parent=None, controller=None, size=6.0):
+    def __init__(self, parent : NodeItem = None, controller = None, size=6.0):
         super().__init__(parent)
         self.setZValue(Z_VAL_NODE_WIDGET)
         self.setFlag(self.ItemIsSelectable, True)
@@ -36,7 +33,6 @@ class TextSizer(QtWidgets.QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == self.ItemPositionChange:
-            item = self.parentItem()
             mx, my = self.controller.minimum_size
             x = mx if value.x() < mx else value.x()
             y = my if value.y() < my else value.y()
@@ -46,7 +42,6 @@ class TextSizer(QtWidgets.QGraphicsItem):
         return super().itemChange(change, value)
 
     def mouseDoubleClickEvent(self, event):
-        item = self.parentItem()
         self.controller.on_sizer_double_clicked()
 
     def paint(self, painter, option, widget):
@@ -103,11 +98,11 @@ class TextEditNodeWidget(NodeBaseWidget):
         self.group.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.setWidget(self.group)
         self.text = text
-        self.parent = parent
+        self.parent : NodeItem = parent
         self.minSize = (80,80)
 
         self.sizer = TextSizer(self.parent, self, 20.0)
-        self.parent.pre_init = self.pre_init
+        self.parent.registerPreInitHandler(self.pre_init)
 
     def on_sizer_pos_changed(self, pos):
         bg_margin = 1
@@ -124,12 +119,15 @@ class TextEditNodeWidget(NodeBaseWidget):
 
         self.parent.draw_node()
 
+    def on_sizer_double_clicked(self):
+        pass
+
     def pre_init(self, viewer, pos=None):
         w,h = self.parent.calc_size()
         self.viewer = viewer
 
         self.minSize = (w, h)
-        self.sizer.set_pos(0,0)
+        self.sizer.set_pos(self.parent._width,self.parent._height)
         self.on_sizer_pos_changed(self.sizer.pos())
 
     @property

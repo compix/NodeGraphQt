@@ -62,7 +62,7 @@ class TextSizer(QtWidgets.QGraphicsItem):
             color = QtGui.QColor(*NODE_SEL_BORDER_COLOR)
         else:
             color = QtGui.QColor(*item.color)
-            color = color.darker(110)
+            color = color.darker(50)
         path = QtGui.QPainterPath()
         path.moveTo(rect.topRight())
         path.lineTo(rect.bottomRight())
@@ -84,23 +84,23 @@ class TextEditNodeWidget(NodeBaseWidget):
         self.viewer = None
 
         self.textEdit = QtWidgets.QTextEdit()
-        self.textEdit.setMinimumWidth(80)
-        self.textEdit.setMinimumHeight(80)
         self.textEdit.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         self.textEdit.setAlignment(QtCore.Qt.AlignTop)
         self.textEdit.textChanged.connect(self._value_changed)
         self.textEdit.clearFocus()
+        self.textEdit.setMinimumSize(80,30)
         self.group = _NodeGroupBox(label)
         self.group.add_node_widget(self.textEdit)
         self.group.setAlignment(QtCore.Qt.AlignTop)
         self.group._layout.setAlignment(QtCore.Qt.AlignTop)
-        self.group.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #self.group.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.setWidget(self.group)
         self.text = text
         self.parent : NodeItem = parent
-        self.minSize = (80,80)
+        self.minSize = (100,100)
 
+        print(self.group.size())
         self.sizer = TextSizer(self.parent, self, 20.0)
         self.parent.registerPreInitHandler(self.pre_init)
 
@@ -123,10 +123,11 @@ class TextEditNodeWidget(NodeBaseWidget):
         pass
 
     def pre_init(self, viewer, pos=None):
-        w,h = self.parent.calc_size()
+        print(self.textEdit.size())
+        w,_ = self.parent.calc_size()
         self.viewer = viewer
 
-        self.minSize = (w, h)
+        self.minSize = (w,self.minSize[0])
         self.sizer.set_pos(self.parent._width,self.parent._height)
         self.on_sizer_pos_changed(self.sizer.pos())
 

@@ -59,7 +59,7 @@ def getDefaultInputParamsSource(node):
     params = []
     for inPort in node._inputs:
         param = getDefaultInputParamSource(node, inPort)
-        if param != None:
+        if not inPort.is_exec:
             params.append(param)
     
     return params

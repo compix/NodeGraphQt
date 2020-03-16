@@ -206,7 +206,7 @@ class BaseCustomNode(BaseNode):
         return port
 
     def add_exec_output(self, name):
-        port = self.add_output(name, color=EXECUTE_PORT_COLOR)
+        port = self.add_output(name, color=EXECUTE_PORT_COLOR, multi_output=False)
         port.is_exec = True
         self.is_exec = True
         return port

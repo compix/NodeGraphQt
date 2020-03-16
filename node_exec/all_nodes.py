@@ -13,6 +13,7 @@ import node_exec.core_nodes
 import node_exec.filesystem_nodes
 import node_exec.json_nodes
 import node_exec.qt_file_dialog_nodes
+import node_exec.qt_input_nodes
 
 import os
 # Add nodes that are only supported on windows:

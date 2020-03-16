@@ -46,8 +46,11 @@ class VisualScripting(object):
         sessionGraphName = self.graphManager.getSessionGraphName()
         if sessionGraphName != "" and sessionGraphName != None:
             codePath = self.graphManager.getPythonCodePath(sessionGraphName)
-            print(codePath)
-            subprocess.Popen(f'code {os.path.normpath(codePath)}', shell=True)
+
+            try:
+                subprocess.Popen(f'code {os.path.normpath(codePath)}', shell=True)
+            except Exception as e:
+                print(f"Failed: {e} - Please make sure Visual Studio Code is installed and 'code' is registered as a command.")
 
     def loadUI(self, relUIPath):
         uiFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), relUIPath)

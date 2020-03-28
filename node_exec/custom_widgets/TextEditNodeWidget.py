@@ -100,7 +100,6 @@ class TextEditNodeWidget(NodeBaseWidget):
         self.parent : NodeItem = parent
         self.minSize = (100,100)
 
-        print(self.group.size())
         self.sizer = TextSizer(self.parent, self, 20.0)
         self.parent.registerPreInitHandler(self.pre_init)
 
@@ -123,7 +122,6 @@ class TextEditNodeWidget(NodeBaseWidget):
         pass
 
     def pre_init(self, viewer, pos=None):
-        print(self.textEdit.size())
         w,_ = self.parent.calc_size()
         self.viewer = viewer
 

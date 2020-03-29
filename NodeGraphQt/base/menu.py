@@ -89,7 +89,6 @@ class Menu(object):
             NodeGraphQt.Menu: the appended menu item.
         """
         menu = QtWidgets.QMenu(name, self.qmenu)
-        menu.setStyleSheet(STYLE_QMENU)
         self.qmenu.addMenu(menu)
         return Menu(self.__viewer, menu)
 

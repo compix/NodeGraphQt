@@ -7,6 +7,7 @@ from node_exec import base_nodes
 from node_exec import flow_nodes
 from node_exec import inline_nodes
 import VisualScripting
+from node_exec import GraphManager
 
 DEFAULT_INDENT = "    "
 
@@ -211,9 +212,9 @@ def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = "", i
 
 class CodeGenerator(object):
     def __init__(self):
-        self.graphManager = None
+        self.graphManager : GraphManager = None
 
-    def setGraphManager(self, graphManager):
+    def setGraphManager(self, graphManager : GraphManager):
         self.graphManager = graphManager
 
     def generatePythonCode(self, graph, node, moduleName, targetFolder):

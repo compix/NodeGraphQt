@@ -74,7 +74,6 @@ class NodeViewer(QtWidgets.QGraphicsView):
 
         self._undo_stack = QtWidgets.QUndoStack(self)
         self._context_menu = QtWidgets.QMenu('main', self)
-        self._context_menu.setStyleSheet(STYLE_QMENU)
         self._search_widget = TabSearchWidget(self)
         self._search_widget.search_submitted.connect(self._on_search_submitted)
 

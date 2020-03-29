@@ -8,12 +8,51 @@ from PySide2.QtWidgets import QMessageBox
 import json
 import sys
 import importlib
+from pathlib import Path
+from typing import List
+
+class GraphSettings(object):
+    def __init__(self, name, category, startNodeName):
+        self.name = name
+        self.category = "Default" if category == None else category
+        self.startNodeName = startNodeName
+
+        self.id = self.category + "_" + self.name
+        self.relativePath = os.path.join(category, name)
+
+    def setRelativePath(self, relativePath):
+        self.relativePath = relativePath
+
+    @staticmethod
+    def loadFromSettings(settingsPath):
+        try:
+            with open(settingsPath, mode='r') as f:
+                settings = json.load(f)
+
+            graphName = settings.get("name")
+            startNodeName = settings.get("startNodeName")
+            category = settings.get("category")
+
+            return GraphSettings(graphName, category, startNodeName)
+        except Exception as e:
+            print(f"Failed to load settings file: {str(e)}")
+
+        return None
+
+    def save(self, settingsPath):
+        try:
+            settings = dict()
+            settings["name"] = self.name
+            settings["startNodeName"] = self.startNodeName
+            settings["category"] = self.category
+            with open(settingsPath, mode='w+') as f:
+                json.dump(settings, f)
+        except Exception as e:
+            print(e)
 
 class Session(object):
-    def __init__(self, graphName, graphCategory, startNodeName, graph):
-        self.graphName = graphName
-        self.graphCategory = "Default" if graphCategory == None else graphCategory
-        self.startNodeName = startNodeName
+    def __init__(self, graphSettings : GraphSettings, graph):
+        self.graphSettings = graphSettings
         self.graph = graph
 
 class GraphManager(object):
@@ -30,139 +69,120 @@ class GraphManager(object):
         self.graphsFolder = os.path.join(serializationFolder, GraphManager.GRAPHS_FOLDER)
         self.mkDir(self.graphsFolder)
 
-        #self.availableGraphFolders = self.retrieveAvailableGraphFolders()
-        #self.availableGraphNames = self.retrieveAvailableGraphNames()
-
         self.curSession = None
         
-    def mkDir(self, dir):
-        if os.path.isdir(dir):
+        # TODO:
+        # 1. Save with category as subfolder
+        # 2. Retrieve settings info instead of just the graph names.
+
+    def mkDir(self, directory):
+        if os.path.isdir(directory):
             return
 
         try:
-            os.makedirs(dir)
+            os.makedirs(directory)
         except Exception as e:
             print(str(e))
     
-    def retrieveAvailableGraphFolders(self):
-        graphFolders = set()
-        dirList = next(os.walk(self.graphsFolder))[1]
-        for dir in dirList:
-            graphFolders.add(dir)
+    def retrieveAvailableGraphSettings(self) -> List[GraphSettings]:
+        graphSettings = []
+        for graphSettingsPath in Path(self.graphsFolder).rglob("*_settings.json"):
+            settings = GraphSettings.loadFromSettings(graphSettingsPath)
+            if settings != None:
+                graphSettings.append(settings)
+                settings.setRelativePath(os.path.dirname(os.path.relpath(graphSettingsPath, self.graphsFolder)))
 
-        return graphFolders
+        return graphSettings
 
-    @property
-    def availableGraphFolders(self):
-        return self.retrieveAvailableGraphFolders()
-
-    @property
-    def availableGraphNames(self):
-        return self.retrieveAvailableGraphNames()
+    def retrieveAvailableGraphIds(self):
+        return [s.id for s in self.retrieveAvailableGraphSettings()]
 
     @property
     def graphCategoryToNamesMap(self):
+        settings = self.retrieveAvailableGraphSettings()
         d = dict()
-        
-        availableGraphNames = self.availableGraphNames
-        for graphName in availableGraphNames:
-            graphSettings = self.loadGraphSettings(graphName)
-
-            if graphSettings == None:
-                continue
-
-            category = graphSettings.get('category')
-
-            if category == None:
-                category = "Default"
-
-            if category in d.keys():
-                d[category].append(graphName)
+        for s in settings:
+            if s.category in d.keys():
+                d[s.category].append(s.name)
             else:
-                d[category] = [graphName]
+                d[s.category] = [s.name]
 
         return d
 
     def retrieveAvailableGraphNames(self):
-        graphNames = set()
-        for folder in self.availableGraphFolders:
-            graphNames.add(os.path.basename(folder))
+        return [s.name for s in self.retrieveAvailableGraphSettings()]
 
-        return graphNames
+    def getGraphFolder(self, graphSettings : GraphSettings):
+        return os.path.join(self.graphsFolder, graphSettings.relativePath)
 
-    def getGraphFolder(self, graphName):
-        return os.path.join(self.graphsFolder, graphName)
+    def getGraphFilePath(self, graphSettings : GraphSettings):
+        return os.path.join(self.getGraphFolder(graphSettings), graphSettings.name + ".json")
 
-    def getGraphFilePath(self, graphName):
-        return os.path.join(self.getGraphFolder(graphName), graphName + ".json")
+    def getPythonCodePath(self, graphSettings : GraphSettings):
+        moduleName = self.getModuleNameFromGraphName(graphSettings.name)
+        return os.path.join(self.getGraphFolder(graphSettings), moduleName + ".py")
 
-    def getPythonCodePath(self, graphName):
-        moduleName = self.getModuleNameFromGraphName(graphName)
-        return os.path.join(self.getGraphFolder(graphName), moduleName + ".py")
-
-    def getSettingsPath(self, graphName):
-        return os.path.join(self.getGraphFolder(graphName), graphName + "_settings.json")
+    def getSettingsPath(self, graphSettings : GraphSettings):
+        return os.path.join(self.getGraphFolder(graphSettings), graphSettings.name + "_settings.json")
 
     def getSessionGraphName(self):
-        return self.curSession.graphName if self.curSession != None else ""
+        return self.curSession.graphSettings.name if self.curSession != None else ""
 
     def getSessionStartNodeName(self):
-        return self.curSession.startNodeName if self.curSession != None else ""
+        return self.curSession.graphSettings.startNodeName if self.curSession != None else ""
 
     def getModuleNameFromGraphName(self, graphName):
         return graphName.replace(" ", "")
 
     def saveGraph(self, graph, graphName, graphCategory, startNodeName='Exec Start'):
         writeGraph = True
-        if graphName in self.availableGraphFolders and (self.curSession == None or self.curSession.graphName != graphName):
+
+        settings = GraphSettings(graphName, graphCategory, startNodeName)
+        graphId = settings.id
+
+        if graphId in self.retrieveAvailableGraphIds() and (self.curSession == None or self.curSession.graphSettings.name != graphName):
             ret = QMessageBox.question(None, "Name already exists.", "Are you sure you want to overwrite the existing graph with the same name?")
             writeGraph = ret == QMessageBox.Yes
 
         if writeGraph:
-            graphFolder = self.getGraphFolder(graphName)
+            graphFolder = self.getGraphFolder(settings)
             self.mkDir(graphFolder)
 
-            graph.save_session(self.getGraphFilePath(graphName))
+            graph.save_session(self.getGraphFilePath(settings))
             startNode = graph.get_node_by_name(startNodeName)
             moduleName = self.getModuleNameFromGraphName(graphName)
             self.codeGenerator.generatePythonCode(graph, startNode, moduleName, graphFolder)
 
-            settingsFile = self.getSettingsPath(graphName)
-            settingsDict = dict()
-            settingsDict['start_node'] = startNodeName
-            settingsDict['category'] = graphCategory
-            with open(settingsFile, mode='w+') as f:
-                json.dump(settingsDict, f)
+            settingsFile = self.getSettingsPath(settings)
+            settings.save(settingsFile)
 
-            self.curSession = Session(graphName, graphCategory, startNodeName, graph)
+            self.curSession = Session(settings, graph)
 
-    def loadGraph(self, graph, graphName):
-        graph.load_session(self.getGraphFilePath(graphName))
+    def loadGraph(self, graph, graphName : str, category : str):
+        graphSettings = self.getGraphSettings(graphName, category)
 
-        with open(self.getSettingsPath(graphName), mode='r') as f:
-            settings = json.load(f)
-            self.curSession = Session(graphName, settings.get('category'), settings['start_node'], graph)
+        if graphSettings != None:
+            graph.load_session(self.getGraphFilePath(graphSettings))
+            self.curSession = Session(graphSettings, graph)
 
-    def loadGraphSettings(self, graphName):
-        settings = None
+    def getGraphSettings(self, graphName : str, category : str):
+        for s in self.retrieveAvailableGraphSettings():
+            if s.name == graphName and s.category == category:
+                return s
 
-        try:
-            with open(self.getSettingsPath(graphName), mode='r') as f:
-                settings = json.load(f)
-        except Exception as e:
-            print(e)
-
-        return settings
+        return None
         
     def executeGraph(self):
         if self.curSession == None:
             QMessageBox.critical(None, "Unsaved state", "Please save the graph first.")
             return
 
-        self.saveGraph(self.curSession.graph, self.curSession.graphName, self.curSession.graphCategory, startNodeName=self.curSession.startNodeName)
+        sessionSettings = self.curSession.graphSettings
+        self.saveGraph(self.curSession.graph, sessionSettings.name, sessionSettings.category, startNodeName=sessionSettings.startNodeName)
 
-        moduleName = self.getModuleNameFromGraphName(self.curSession.graphName)
-        pythonFile = self.getPythonCodePath(self.curSession.graphName)
+        sessionSettings = self.curSession.graphSettings
+        moduleName = self.getModuleNameFromGraphName(sessionSettings.name)
+        pythonFile = self.getPythonCodePath(sessionSettings)
         pathonFileDir = os.path.dirname(pythonFile)
 
         if not pathonFileDir in sys.path:

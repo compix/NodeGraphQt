@@ -43,9 +43,9 @@ class VisualScripting(object):
         self.setupMenuBar(self.graph)
 
     def openInVisualStudioCode(self):
-        sessionGraphName = self.graphManager.getSessionGraphName()
-        if sessionGraphName != "" and sessionGraphName != None:
-            codePath = self.graphManager.getPythonCodePath(sessionGraphName)
+        session = self.graphManager.curSession
+        if session != None:
+            codePath = self.graphManager.getPythonCodePath(session.graphSettings.name, session.graphSettings.category)
 
             try:
                 subprocess.Popen(f'code {os.path.normpath(codePath)}', shell=True)
@@ -216,7 +216,8 @@ class VisualScripting(object):
             if len(selectedRows) > 0:
                 listItem = dialog.graphListView.model().item(selectedRows[0].row())
                 graphName = listItem.text()
-                self.graphManager.loadGraph(self.graph, graphName)
+                category = dialog.categoryComboBox.currentText()
+                self.graphManager.loadGraph(self.graph, graphName, category)
 
     def setupPropertiesBin(self):
         self.propertiesBin = PropertiesBinWidget(node_graph=self.graph)

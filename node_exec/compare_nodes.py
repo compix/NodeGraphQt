@@ -2,27 +2,27 @@ from node_exec.base_nodes import defNode, defInlineNode
 
 COMPARE_IDENTIFIER = 'Compare'
 
-@defInlineNode('Greater', identifier=COMPARE_IDENTIFIER)
+@defInlineNode('Greater', returnNames=["greater"], identifier=COMPARE_IDENTIFIER)
 def greater(lhs, rhs):
     return f'{lhs} > {rhs}'
 
-@defInlineNode('Greater Equals', identifier=COMPARE_IDENTIFIER)
+@defInlineNode('Greater Equals', returnNames=["equals"], identifier=COMPARE_IDENTIFIER)
 def greaterEquals(lhs, rhs):
     return f'{lhs} >= {rhs}'
 
-@defInlineNode('Less', identifier=COMPARE_IDENTIFIER)
+@defInlineNode('Less', returnNames=["less"], identifier=COMPARE_IDENTIFIER)
 def less(lhs, rhs):
     return f'{lhs} < {rhs}'
 
-@defInlineNode('Less Equals', identifier=COMPARE_IDENTIFIER)
+@defInlineNode('Less Equals', returnNames=["lessEquals"], identifier=COMPARE_IDENTIFIER)
 def lessEquals(lhs, rhs):
     return f'{lhs} <= {rhs}'
 
-@defInlineNode('Equals', identifier=COMPARE_IDENTIFIER)
+@defInlineNode('Equals', returnNames=["equals"], identifier=COMPARE_IDENTIFIER)
 def equals(lhs, rhs):
     return f'{lhs} == {rhs}'
 
-@defNode('Select', identifier=COMPARE_IDENTIFIER)
+@defNode('Select', returnNames=["selected"], identifier=COMPARE_IDENTIFIER)
 def select(condition, trueValue, falseValue):
     return trueValue if condition else falseValue
 

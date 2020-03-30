@@ -30,18 +30,18 @@ class AddMultipleNode(BaseCustomNode):
     def execute(*argv):
         return sum(argv)
 
-@defInlineNode('Add', identifier=OPERATOR_IDENTIFIER)
+@defInlineNode('Add', returnNames=["sum"], identifier=OPERATOR_IDENTIFIER)
 def add(lhs, rhs):
     return f'{lhs} + {rhs}'
 
-@defInlineNode('Multiply', identifier=OPERATOR_IDENTIFIER)
+@defInlineNode('Multiply', returnNames=["product"], identifier=OPERATOR_IDENTIFIER)
 def multiply(lhs, rhs):
     return f'{lhs} * {rhs}'
 
-@defInlineNode('Divide', identifier=OPERATOR_IDENTIFIER)
+@defInlineNode('Divide', returnNames=["quotient"], identifier=OPERATOR_IDENTIFIER)
 def divide(lhs, rhs):
     return f'{lhs} / {rhs}'
 
-@defInlineNode('Subtract', identifier=OPERATOR_IDENTIFIER)
+@defInlineNode('Subtract', returnNames=["difference"], identifier=OPERATOR_IDENTIFIER)
 def subtract(lhs, rhs):
     return f'{lhs} - {rhs}'

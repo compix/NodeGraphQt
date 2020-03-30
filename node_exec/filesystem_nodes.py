@@ -36,27 +36,27 @@ def createDirectory(dirPath):
     if not os.path.exists(dirPath):
         os.mkdir(dirPath)
 
-@defNode("Path Exists", identifier=IDENTIFIER)
+@defNode("Path Exists", returnNames=["exists"], identifier=IDENTIFIER)
 def pathExists(path):
     return os.path.exists(path)
 
-@defNode("Is File", identifier=IDENTIFIER)
+@defNode("Is File", returnNames=["isFile"], identifier=IDENTIFIER)
 def isFile(path):
     return os.path.isfile(path)
 
-@defNode("Is Directory", identifier=IDENTIFIER)
+@defNode("Is Directory", returnNames=["isDir"], identifier=IDENTIFIER)
 def isDirectory(path):
     return os.path.isdir(path)
 
-@defNode("Path Basename", identifier=IDENTIFIER)
+@defNode("Path Basename", returnNames=["basename"], identifier=IDENTIFIER)
 def getPathBasename(path):
     return os.path.basename(path)
 
-@defNode("Path Directory", identifier=IDENTIFIER)
+@defNode("Path Directory", returnNames=["name"], identifier=IDENTIFIER)
 def getPathDirName(path):
     return os.path.dirname(path)
 
-@defNode("File Extension", identifier=IDENTIFIER)
+@defNode("File Extension", returnNames=["ext"], identifier=IDENTIFIER)
 def getFileExtension(filePath):
     return os.path.splitext(filePath)[1]
 

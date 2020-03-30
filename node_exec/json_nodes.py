@@ -4,15 +4,15 @@ import os
 
 IDENTIFIER = "Json"
 
-@defNode("Json Load From String", isExecutable=True, identifier=IDENTIFIER)
+@defNode("Json Load From String", returnNames=["dict"], isExecutable=True, identifier=IDENTIFIER)
 def loadFromString(inputString):
     return json.loads(inputString)
 
-@defNode("Json Load From File", isExecutable=True, identifier=IDENTIFIER)
+@defNode("Json Load From File", returnNames=["dict"], isExecutable=True, identifier=IDENTIFIER)
 def loadFromFile(file):
     return json.load(file)
 
-@defNode("Json Load From File Path", isExecutable=True, identifier=IDENTIFIER)
+@defNode("Json Load From File Path", returnNames=["dict"], isExecutable=True, identifier=IDENTIFIER)
 def loadFromFilePath(filePath):
     if os.path.exists(filePath):
         with open(filePath, "r") as f:
@@ -22,7 +22,7 @@ def loadFromFilePath(filePath):
 
 @defNode("Json Save To String", isExecutable=True, identifier=IDENTIFIER)
 def saveToString(obj, indent=4, sortKeys=True):
-    return json.dumps(obj, indent=indent, sort_keys=sortKeys)
+    json.dumps(obj, indent=indent, sort_keys=sortKeys)
 
 @defNode("Json Save To File", isExecutable=True, identifier=IDENTIFIER)
 def saveToFile(obj, file, indent=4, sortKeys=True):

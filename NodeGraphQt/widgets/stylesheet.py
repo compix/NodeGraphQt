@@ -133,7 +133,8 @@ QListView::item:selected {
 }
 '''
 
-STYLE_QMENU = '''
+STYLE_QMENU = ""
+'''
 QMenu {
     color: rgba(255, 255, 255, 200);
     background-color: rgba(47, 47, 47, 255);

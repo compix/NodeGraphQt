@@ -131,8 +131,16 @@ class GraphManager(object):
     def getSessionStartNodeName(self):
         return self.curSession.graphSettings.startNodeName if self.curSession != None else ""
 
+    def getSessionCategory(self):
+        return self.curSession.graphSettings.category if self.curSession != None else ""
+
     def getModuleNameFromGraphName(self, graphName):
         return graphName.replace(" ", "")
+
+    def saveCurrentSession(self):
+        if self.curSession != None:
+            s = self.curSession.graphSettings
+            self.saveGraph(self.curSession.graph, s.name, s.category, s.startNodeName)
 
     def saveGraph(self, graph, graphName, graphCategory, startNodeName='Exec Start'):
         writeGraph = True

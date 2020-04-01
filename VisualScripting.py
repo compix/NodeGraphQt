@@ -45,10 +45,10 @@ class VisualScripting(object):
     def openInVisualStudioCode(self):
         session = self.graphManager.curSession
         if session != None:
-            codePath = self.graphManager.getPythonCodePath(session.graphSettings.name, session.graphSettings.category)
+            codePath = self.graphManager.getPythonCodePath(session.graphSettings)
 
             try:
-                subprocess.Popen(f'code {os.path.normpath(codePath)}', shell=True)
+                subprocess.Popen(f'code \"{os.path.normpath(codePath)}\"', shell=True)
             except Exception as e:
                 print(f"Failed: {e} - Please make sure Visual Studio Code is installed and 'code' is registered as a command.")
 
@@ -70,12 +70,9 @@ class VisualScripting(object):
         fileMenu.add_command('Open Graph...',
                             lambda: actions._open_session(graph),
                             QtGui.QKeySequence.Open)
-        fileMenu.add_command('Export Graph...',
-                            lambda: actions._save_session(graph),
-                            QtGui.QKeySequence.Save)
         fileMenu.add_command('Export Graph As...',
                             lambda: actions._save_session_as(graph),
-                            'Ctrl+Shift+s')
+                            'Alt+Shift+s')
         fileMenu.add_command('Clear', lambda: actions._clear_session(graph))
 
         fileMenu.add_separator()
@@ -133,7 +130,12 @@ class VisualScripting(object):
         menuBar.setMaximumHeight(20)
 
         self.saveAction = QtWidgets.QAction("Save")
+        self.saveAction.setShortcut(QtGui.QKeySequence.Save)
         self.saveAction.triggered.connect(self.onSave)
+
+        self.saveAsAction = QtWidgets.QAction("Save As...")
+        self.saveAsAction.setShortcut("Ctrl+Shift+S")
+        self.saveAsAction.triggered.connect(self.onSaveAs)
 
         self.loadAction = QtWidgets.QAction("Load")
         self.loadAction.triggered.connect(self.onLoad)
@@ -147,6 +149,7 @@ class VisualScripting(object):
         self.openInCode.setShortcut(QtGui.QKeySequence("Q"))
 
         sessionMenu.addAction(self.saveAction)
+        sessionMenu.addAction(self.saveAsAction)
         sessionMenu.addAction(self.loadAction)
         sessionMenu.addAction(self.runAction)
         sessionMenu.addAction(self.openInCode)
@@ -166,13 +169,16 @@ class VisualScripting(object):
         dialog.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         return dialog
 
-    def onSave(self):
+    def saveAs(self):
         currentGraphName = self.graphManager.getSessionGraphName()
         currentStartNodeName = self.graphManager.getSessionStartNodeName()
+        currentCategory = self.graphManager.getSessionCategory()
 
         dialog = self.loadDialog("saveGraphDialog.ui")
         dialog.graphNameLineEdit.setText(currentGraphName)
         self.setupCategoryComboBox(dialog.categoryComboBox)
+
+        dialog.categoryComboBox.setCurrentText(currentCategory)
 
         allGraphNodeNames = [n.name() for n in self.graph.all_nodes() if n.isViableStartNode]
         for n in allGraphNodeNames:
@@ -188,6 +194,16 @@ class VisualScripting(object):
         if ok and graphName and len(graphName) > 0:
             startNodeName = dialog.startNodeComboBox.currentText()
             self.graphManager.saveGraph(self.graph, graphName, graphCategory, startNodeName=startNodeName)
+
+    def onSave(self):
+        if self.graphManager.curSession != None:
+            self.graphManager.saveCurrentSession()
+            return
+
+        self.saveAs()
+
+    def onSaveAs(self):
+        self.saveAs()
 
     def fillListView(self, listView, category):
         items = self.graphManager.graphCategoryToNamesMap.get(category)

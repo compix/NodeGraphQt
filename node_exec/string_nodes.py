@@ -26,7 +26,7 @@ def removeWhiteSpace(value):
 def _strip(value):
     return value.strip()
 
-@defNode('Split', returnNames=["str"], identifier=STRING_IDENTIFIER)
+@defNode('Split', returnNames=["str_list"], identifier=STRING_IDENTIFIER)
 def _split(value, seperator):
     return value.split(None if seperator == '' else seperator)
 

@@ -54,6 +54,10 @@ class BaseCustomNode(BaseNode):
         return []
 
     @property
+    def isScriptingNode(self):
+        return True
+        
+    @property
     def fullClassName(self):
         return f"{self.__class__.__module__}.{self.__class__.__name__}"
 

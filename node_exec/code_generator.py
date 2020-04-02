@@ -24,7 +24,10 @@ def getVarNameSource(node,idx=0):
     return f"var_{node.id}_{idx}" if idx != None else f"var_{node.id}"
 
 def getParamName(port):
-    return getVarNameSource(port.connected_ports()[0].node())
+    if len(port.connected_ports()) > 0: 
+        return getVarNameSource(port.connected_ports()[0].node())
+    else:
+        return str(port.node().getDefaultInput(port))
 
 def getInputParamsSource(node):
     params = []
@@ -217,6 +220,9 @@ class CodeGenerator(object):
     def setGraphManager(self, graphManager : GraphManager):
         self.graphManager = graphManager
 
+    def getScriptingNodes(self, graph):
+        return [n for n in graph.all_nodes() if n.isScriptingNode]
+
     def generatePythonCode(self, graph, node, moduleName, targetFolder):
         execFuncName = "execute"
         sourceCodeLines = []
@@ -234,7 +240,7 @@ class CodeGenerator(object):
 
         # Generate imports:
         importLines = set()
-        for n in graph.all_nodes():
+        for n in self.getScriptingNodes(graph):
             importLines = importLines.union(n.importLines)
             try:
                 importLine = f"import {n.getModule()}"

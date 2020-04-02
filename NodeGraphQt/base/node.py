@@ -50,6 +50,10 @@ class NodeObject(object):
         self._view.name = self.model.name
         self._view.id = self._model.id
 
+    @property
+    def isScriptingNode(self):
+        return False
+        
     def __repr__(self):
         return '<{}("{}") object at {}>'.format(
             self.__class__.__name__, self.NODE_NAME, hex(id(self)))
@@ -58,11 +62,16 @@ class NodeObject(object):
         # set properties.
         for prop in self.model.properties.keys():
             if prop in data.keys():
-                self.model.set_property(prop, data[prop])
-
+                try:
+                    self.model.set_property(prop, data[prop])
+                except Exception as e:
+                    print(f"Note: {str(e)}")
         # set custom properties.
         for prop, val in data.get('custom', {}).items():
-            self.model.set_property(prop, val)
+            try:
+                self.model.set_property(prop, val)
+            except Exception as e:
+                print(f"Note: {str(e)}")
 
     @classproperty
     def type_(cls):

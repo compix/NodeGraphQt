@@ -180,7 +180,8 @@ class VisualScripting(object):
 
         dialog.categoryComboBox.setCurrentText(currentCategory)
 
-        allGraphNodeNames = [n.name() for n in self.graph.all_nodes() if n.isViableStartNode]
+        scriptingNodes = [n for n in self.graph.all_nodes() if n.isScriptingNode]
+        allGraphNodeNames = [n.name() for n in scriptingNodes if n.isViableStartNode]
         for n in allGraphNodeNames:
             dialog.startNodeComboBox.addItem(n)
         

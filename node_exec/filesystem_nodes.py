@@ -60,6 +60,10 @@ def getPathDirName(path):
 def getFileExtension(filePath):
     return os.path.splitext(filePath)[1]
 
+@defNode("Path Basename Without Extension", returnNames=["name"], identifier=IDENTIFIER)
+def getPathBasenameWithoutExt(filePath):
+    return os.path.splitext(os.path.basename(filePath))[0]
+
 class FileAndDirectoryWalker(BaseCustomCodeNode):
         __identifier__ = IDENTIFIER
         NODE_NAME = 'Walk Files And Directories'
@@ -111,25 +115,40 @@ class FileWalker(BaseCustomCodeNode):
             self.loop_complete_port = self.add_exec_output('Completed')
 
             self.add_output('filePath')
-            self.add_input('directory')
+            self.add_output('basename')
+            self.add_output('basenameWithoutExtension')
+            self.add_output('extension')
+            self.dirInput = self.add_input('directory')
+
+            self.extensionsInput = self.add_input('extensions', default_value=None)
 
         @property
         def importLines(self):
             return ["import os"]
 
         def generateCode(self, sourceCodeLines, indent):
-            inputParams = code_generator.getInputParamsSource(self)
+            directory = code_generator.getParamName(self.dirInput)
+            extensions = code_generator.getParamName(self.extensionsInput)
 
             # Loop body code:
             loopVarFile = code_generator.getVarNameSource(self, idx=0)
-            loopVarRoot = code_generator.getVarNameSource(self, idx=1)
-            loopVarFiles = code_generator.getVarNameSource(self, idx=2)
+            basenameOut = code_generator.getVarNameSource(self, idx=1)
+            basenameWithoutExtensionOut = code_generator.getVarNameSource(self, idx=2)
+            extensionOut = code_generator.getVarNameSource(self, idx=3)
 
-            walkStatement = f"os.walk({inputParams[0]})"
+            loopVarRoot = code_generator.getVarNameSource(self, idx=4)
+            loopVarFiles = code_generator.getVarNameSource(self, idx=5)
+
+            walkStatement = f"os.walk({directory})"
             loopConditionCode = code_generator.makeCodeLine(f"for {loopVarRoot},_,{loopVarFiles} in {walkStatement}:", indent)
             sourceCodeLines.append(loopConditionCode)
             innerLoopConditionCode = code_generator.makeCodeLine(f"for {loopVarFile} in {loopVarFiles}:", indent + code_generator.DEFAULT_INDENT)
-            preBodyLines = [code_generator.makeCodeLine(f"{loopVarFile} = os.path.join({loopVarRoot},{loopVarFile})", indent=indent + code_generator.DEFAULT_INDENT*2)]
+            preBodyLines = [code_generator.makeCodeLine(f"{loopVarFile} = os.path.join({loopVarRoot},{loopVarFile})", indent=indent + code_generator.DEFAULT_INDENT*2),
+                            code_generator.makeCodeLine(f"{basenameOut} = os.path.basename({loopVarFile})", indent=indent + code_generator.DEFAULT_INDENT*2),
+                            code_generator.makeCodeLine(f"{basenameWithoutExtensionOut} = os.path.splitext(os.path.basename({loopVarFile}))[0]", indent=indent + code_generator.DEFAULT_INDENT*2),
+                            code_generator.makeCodeLine(f"{extensionOut} = os.path.splitext({loopVarFile})[1]", indent=indent + code_generator.DEFAULT_INDENT*2),
+                            code_generator.makeCodeLine(f"if {extensions} != None and not {extensionOut} in {extensions}:", indent=indent + code_generator.DEFAULT_INDENT*2),
+                            code_generator.makeCodeLine(f"continue", indent=indent + code_generator.DEFAULT_INDENT*3)]
 
             code_generator.expandCodeWithCondition(self.loop_body_port, sourceCodeLines, innerLoopConditionCode, indent + code_generator.DEFAULT_INDENT, preBodyLines=preBodyLines)
 

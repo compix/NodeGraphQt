@@ -116,7 +116,7 @@ def expandExecCode(execPort, sourceCodeLines, indent):
     if not nextNode is None:
         generatePythonExecutionSourceCodeLines(nextNode, sourceCodeLines, indent)
 
-def expandCodeWithCondition(execPort, sourceCodeLines, conditionalLine, indent, preBodyLines=[]):
+def expandCodeWithCondition(execPort, sourceCodeLines, conditionalLine, indent, preBodyLines=None):
     """
     Expands the code with a condition check line and a body.
 
@@ -128,6 +128,9 @@ def expandCodeWithCondition(execPort, sourceCodeLines, conditionalLine, indent, 
         indent (str): The current indentation level.
     """
 
+    if preBodyLines == None:
+        preBodyLines = []
+        
     nextNode = getNextExecNode(execPort)
     sourceCodeLines.append(conditionalLine)
 

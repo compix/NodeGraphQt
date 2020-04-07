@@ -39,7 +39,7 @@ class BaseCustomNode(BaseNode):
     
     def __init_subclass__(cls, scm_type=None, name=None, **kwargs):
         super().__init_subclass__(**kwargs)
-        node_exec.nodes_cfg.NODES_TO_REGISTER.append(cls)
+        node_exec.nodes_cfg.NODES_TO_REGISTER.add(cls)
 
     def __init__(self):
         super(BaseCustomNode, self).__init__()

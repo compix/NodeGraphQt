@@ -21,6 +21,7 @@ from PySide2.QtCore import Qt
 from PySide2.QtGui import QStandardItemModel, QStandardItem
 from distutils.version import LooseVersion
 import subprocess
+from VisualScripting.core.Event import Event
 
 class VisualScripting(object):
     def __init__(self, graphSerializationFolder, parentWindow=None, codeGenerator=None):
@@ -41,6 +42,8 @@ class VisualScripting(object):
         self.splitter.addWidget(self.propertiesBin)
 
         self.setupMenuBar(self.graph)
+
+        self.onSaveEvent = Event()
 
     def openInVisualStudioCode(self):
         session = self.graphManager.curSession
@@ -196,9 +199,12 @@ class VisualScripting(object):
             startNodeName = dialog.startNodeComboBox.currentText()
             self.graphManager.saveGraph(self.graph, graphName, graphCategory, startNodeName=startNodeName)
 
+        self.onSaveEvent()
+
     def onSave(self):
         if self.graphManager.curSession != None:
             self.graphManager.saveCurrentSession()
+            self.onSaveEvent()
             return
 
         self.saveAs()

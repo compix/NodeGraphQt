@@ -157,7 +157,7 @@ class NodeLineEdit(NodeBaseWidget):
         self._ledit.clearFocus()
         group = _NodeGroupBox(label)
         group.add_node_widget(self._ledit)
-        group.setMaximumWidth(120)
+        group.setMinimumWidth(120)
         self.setWidget(group)
         self.text = text
 
@@ -197,6 +197,7 @@ class NodeCheckBox(NodeBaseWidget):
         self._cbox.stateChanged.connect(self._value_changed)
         group = _NodeGroupBox(label)
         group.add_node_widget(self._cbox)
+        group.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.setWidget(group)
         self.text = text
         self.state = state

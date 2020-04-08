@@ -482,6 +482,8 @@ class BaseNode(NodeObject):
         widget.value_changed.connect(lambda k, v: self.set_property(k, v))
         self.view.add_widget(widget)
 
+        return widget
+
     def add_input(self, name='input', multi_input=False, display_name=True,
                   color=None):
         """

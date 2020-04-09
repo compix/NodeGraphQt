@@ -21,7 +21,9 @@ from PySide2.QtCore import Qt
 from PySide2.QtGui import QStandardItemModel, QStandardItem
 from distutils.version import LooseVersion
 import subprocess
-from VisualScripting.core.Event import Event
+from core.Event import Event
+from core import core
+from PySide2.QtCore import QThreadPool
 
 class VisualScripting(object):
     def __init__(self, graphSerializationFolder, parentWindow=None, codeGenerator=None):
@@ -45,6 +47,9 @@ class VisualScripting(object):
 
         self.onSaveEvent = Event()
 
+    def onOpenInVisualStudioCode(self):
+        QThreadPool.globalInstance().start(core.LambdaTask(self.openInVisualStudioCode))
+        
     def openInVisualStudioCode(self):
         session = self.graphManager.curSession
         if session != None:
@@ -148,7 +153,7 @@ class VisualScripting(object):
         self.runAction.setShortcut(QtGui.QKeySequence("R"))
 
         self.openInCode = QtWidgets.QAction("Show Code In Visual Studio Code")
-        self.openInCode.triggered.connect(self.openInVisualStudioCode)
+        self.openInCode.triggered.connect(self.onOpenInVisualStudioCode)
         self.openInCode.setShortcut(QtGui.QKeySequence("Q"))
 
         sessionMenu.addAction(self.saveAction)

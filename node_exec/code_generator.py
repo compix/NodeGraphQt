@@ -226,7 +226,7 @@ class CodeGenerator(object):
     def getScriptingNodes(self, graph):
         return [n for n in graph.all_nodes() if n.isScriptingNode]
 
-    def generatePythonCode(self, graph, node, moduleName, targetFolder):
+    def generatePythonCode(self, graph, graphName, node, moduleName, targetFolder):
         execFuncName = "execute"
         sourceCodeLines = []
 

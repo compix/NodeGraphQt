@@ -159,7 +159,7 @@ class GraphManager(object):
             graph.save_session(self.getGraphFilePath(settings))
             startNode = graph.get_node_by_name(startNodeName)
             moduleName = self.getModuleNameFromGraphName(graphName)
-            self.codeGenerator.generatePythonCode(graph, startNode, moduleName, graphFolder)
+            self.codeGenerator.generatePythonCode(graph, graphName, startNode, moduleName, graphFolder)
 
             settingsFile = self.getSettingsPath(settings)
             settings.save(settingsFile)

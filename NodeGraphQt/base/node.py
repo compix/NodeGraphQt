@@ -623,6 +623,10 @@ class BackdropNode(NodeObject):
         self.create_property('backdrop_text', '',
                              widget_type=NODE_PROP_QTEXTEDIT, tab='Backdrop')
 
+    def deserialize(self, data):
+        super().deserialize(data)
+        self.view.backdrop_text = self.get_property('backdrop_text')
+
     def auto_size(self):
         """
         Auto resize the backdrop node to fit around the intersecting nodes.

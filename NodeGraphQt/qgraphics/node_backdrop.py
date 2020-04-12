@@ -238,18 +238,10 @@ class BackdropNodeItem(AbstractNodeItem):
             viewer (NodeGraphQt.widgets.viewer.NodeViewer): main viewer.
             pos (tuple): cursor pos.
         """
-        nodes = viewer.selected_nodes()
-        if nodes:
-            padding = 40
-            scene = viewer.scene()
-            group = scene.createItemGroup(nodes)
-            rect = group.boundingRect()
-            scene.destroyItemGroup(group)
-            self.xy_pos = [rect.x() - padding, rect.y() - padding]
-            self._sizer.set_pos(rect.width() + (padding * 2),
-                                rect.height() + (padding * 2))
-        else:
-            self.xy_pos = pos
+        super().pre_init(viewer,pos)
+
+    def post_init(self, viewer, pos=None):
+        super().post_init(viewer,pos)
 
     @property
     def minimum_size(self):

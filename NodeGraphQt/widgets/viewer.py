@@ -323,12 +323,7 @@ class NodeViewer(QtWidgets.QGraphicsView):
         self.ALT_state = event.modifiers() == QtCore.Qt.AltModifier
         self.CTRL_state = event.modifiers() == QtCore.Qt.ControlModifier
         self.SHIFT_state = event.modifiers() == QtCore.Qt.ShiftModifier
-
-        # Todo: find a better solution to catch modifier keys.
-        if event.modifiers() == (QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier):
-            self.ALT_state = True
-            self.SHIFT_state = True
-
+        
         super(NodeViewer, self).keyPressEvent(event)
 
     def keyReleaseEvent(self, event):
@@ -338,6 +333,11 @@ class NodeViewer(QtWidgets.QGraphicsView):
         super(NodeViewer, self).keyReleaseEvent(event)
 
     # --- scene events ---
+
+    def focusOutEvent(self, event):
+        self.ALT_state = False
+        self.CTRL_state = False
+        self.SHIFT_state = False
 
     def sceneMouseMoveEvent(self, event):
         """

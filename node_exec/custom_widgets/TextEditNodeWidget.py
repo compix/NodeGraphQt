@@ -3,76 +3,6 @@ from NodeGraphQt.qgraphics.node_backdrop import BackdropSizer, NODE_SEL_BORDER_C
 from NodeGraphQt.qgraphics.node_base import NodeItem
 from PySide2 import QtWidgets, QtCore, QtGui
 
-class TextSizer(QtWidgets.QGraphicsItem):
-    """
-    Sizer item for resizing a TextEditNodeWidget.
-    """
-
-    def __init__(self, parent : NodeItem = None, controller = None, size=6.0):
-        super().__init__(parent)
-        self.setZValue(Z_VAL_NODE_WIDGET)
-        self.setFlag(self.ItemIsSelectable, True)
-        self.setFlag(self.ItemIsMovable, True)
-        self.setFlag(self.ItemSendsScenePositionChanges, True)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.SizeFDiagCursor))
-        self.setToolTip('double-click auto resize')
-        self._size = size
-        self.controller = controller
-
-    @property
-    def size(self):
-        return self._size
-
-    def set_pos(self, x, y):
-        x -= self._size
-        y -= self._size
-        self.setPos(x, y)
-
-    def boundingRect(self):
-        return QtCore.QRectF(0.5, 0.5, self._size, self._size)
-
-    def itemChange(self, change, value):
-        if change == self.ItemPositionChange:
-            mx, my = self.controller.minimum_size
-            x = mx if value.x() < mx else value.x()
-            y = my if value.y() < my else value.y()
-            value = QtCore.QPointF(x, y)
-            self.controller.on_sizer_pos_changed(value)
-            return value
-        return super().itemChange(change, value)
-
-    def mouseDoubleClickEvent(self, event):
-        self.controller.on_sizer_double_clicked()
-
-    def paint(self, painter, option, widget):
-        """
-        Draws the backdrop sizer on the bottom right corner.
-
-        Args:
-            painter (QtGui.QPainter): painter used for drawing the item.
-            option (QtGui.QStyleOptionGraphicsItem):
-                used to describe the parameters needed to draw.
-            widget (QtWidgets.QWidget): not used.
-        """
-        painter.save()
-
-        rect = self.boundingRect()
-        item = self.parentItem()
-        if item and item.selected:
-            color = QtGui.QColor(*NODE_SEL_BORDER_COLOR)
-        else:
-            color = QtGui.QColor(*item.color)
-            color = color.darker(50)
-        path = QtGui.QPainterPath()
-        path.moveTo(rect.topRight())
-        path.lineTo(rect.bottomRight())
-        path.lineTo(rect.bottomLeft())
-        painter.setBrush(color)
-        painter.setPen(QtCore.Qt.NoPen)
-        painter.fillPath(path, painter.brush())
-
-        painter.restore()
-
 class TextEditNodeWidget(NodeBaseWidget):
     """
     TextEdit Node Widget.
@@ -89,49 +19,17 @@ class TextEditNodeWidget(NodeBaseWidget):
         self.textEdit.setAlignment(QtCore.Qt.AlignTop)
         self.textEdit.textChanged.connect(self._value_changed)
         self.textEdit.clearFocus()
-        self.textEdit.setMinimumSize(80,30)
+        self.textEdit.setMinimumSize(80,17)
         self.group = _NodeGroupBox(label)
         self.group.add_node_widget(self.textEdit)
         self.group.setAlignment(QtCore.Qt.AlignTop)
         self.group._layout.setAlignment(QtCore.Qt.AlignTop)
-        #self.group.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.group.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.setWidget(self.group)
         self.text = text
         self.parent : NodeItem = parent
-        self.minSize = (100,100)
-
-        self.sizer = TextSizer(self.parent, self, 20.0)
-        self.parent.registerPreInitHandler(self.pre_init)
-
-    def on_sizer_pos_changed(self, pos):
-        bg_margin = 1
-
-        prevWidth = self.parent._width
-        prevHeight = self.parent._height
-        self.parent._width = pos.x() + self.sizer.size + bg_margin
-        self.parent._height = pos.y() + self.sizer.size + bg_margin
-
-        dw = self.parent._width - prevWidth
-        dh = self.parent._height - prevHeight
-
-        self.group.setFixedSize(self.group.width() + dw, self.group.height() + dh)
-
-        self.parent.draw_node()
-
-    def on_sizer_double_clicked(self):
-        pass
-
-    def pre_init(self, viewer, pos=None):
-        w,_ = self.parent.calc_size()
-        self.viewer = viewer
-
-        self.minSize = (w,self.minSize[0])
-        self.sizer.set_pos(self.parent._width,self.parent._height)
-        self.on_sizer_pos_changed(self.sizer.pos())
-
-    @property
-    def minimum_size(self):
-        return self.minSize
+        
+        self.parent.setResizable(True)
 
     @property
     def type_(self):

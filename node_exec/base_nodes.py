@@ -1,5 +1,5 @@
 from NodeGraphQt.base.port import Port
-from NodeGraphQt import BaseNode
+from NodeGraphQt import BaseNode, QtCore
 from NodeGraphQt.base import node
 from NodeGraphQt.constants import NODE_PROP_QLINEEDIT
 from NodeGraphQt import QtWidgets
@@ -161,7 +161,7 @@ class BaseCustomNode(BaseNode):
         except:
             pass
 
-        del modelPorts[self.getPropertyName(port.name())]
+        del modelPorts[port.name()]
         ports.remove(port)
 
         connectedPorts = port.connected_ports().copy()
@@ -175,7 +175,7 @@ class BaseCustomNode(BaseNode):
         textItem.setParentItem(None)
         del items[portView]
 
-        nodeView.post_init()
+        nodeView.draw_node()
 
     def disconnectPorts(self, source: Port, target: Port):
         src_model = source.model
@@ -325,7 +325,9 @@ class VariableInputCountNode(BaseCustomNode):
                 self.deletePort(p)
 
         for i in range(prevCount, self.count):
-            self.add_or_update_input(f"in{i}", customProps.get(self.getPropertyName(f"in{i}")))
+            self.add_or_update_input(f"in{i}", default_value=customProps.get(self.getPropertyName(f"in{i}")))
+
+        self.view.adjustSize()
 
 @excludeFromRegistration
 class InlineNode(BaseCustomNode):
@@ -473,7 +475,8 @@ class NodeButton(NodeBaseWidget):
         group = _NodeGroupBox(label)
 
         group.add_node_widget(self.btn)
-        group.setMaximumWidth(120)
+        group.setAlignment(QtCore.Qt.AlignCenter)
+        group._layout.setAlignment(QtCore.Qt.AlignCenter)
         self.setWidget(group)
 
     @property

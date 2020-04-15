@@ -5,11 +5,84 @@ from NodeGraphQt.constants import (IN_PORT, OUT_PORT,
                                    NODE_WIDTH, NODE_HEIGHT,
                                    NODE_ICON_SIZE, ICON_NODE_BASE,
                                    NODE_SEL_COLOR, NODE_SEL_BORDER_COLOR,
-                                   PORT_FALLOFF, Z_VAL_NODE, Z_VAL_NODE_WIDGET)
+                                   PORT_FALLOFF, Z_VAL_NODE, Z_VAL_NODE_WIDGET, 
+                                   PORT_SPACING, NODE_TOP_BORDER_HEIGHT)
 from NodeGraphQt.errors import NodeWidgetError
 from NodeGraphQt.qgraphics.node_abstract import AbstractNodeItem
 from NodeGraphQt.qgraphics.port import PortItem
 
+class NodeItemSizer(QtWidgets.QGraphicsItem):
+    """
+    Sizer item for resizing a NodeItem.
+    """
+    def __init__(self, parent, controller = None, size=6.0):
+        self._size = size
+
+        super().__init__(parent)
+        self.setZValue(Z_VAL_NODE_WIDGET)
+        self.setFlag(self.ItemIsSelectable, True)
+        self.setFlag(self.ItemIsMovable, True)
+        self.setFlag(self.ItemSendsScenePositionChanges, True)
+        self.setCursor(QtGui.QCursor(QtCore.Qt.SizeFDiagCursor))
+        self.setToolTip('double-click auto resize')
+        self.controller = controller
+
+    @property
+    def size(self):
+        return self._size
+
+    def set_pos(self, x, y):
+        x -= self._size
+        y -= self._size
+        self.setPos(x, y)
+
+    def boundingRect(self):
+        return QtCore.QRectF(0.5, 0.5, self._size, self._size)
+
+    def itemChange(self, change, value):
+        if change == self.ItemPositionChange:
+            mx, my = self.controller.minimum_size
+            x = mx if value.x() < mx else value.x()
+            y = my if value.y() < my else value.y()
+            value = QtCore.QPointF(x, y)
+            self.controller.on_sizer_pos_changed(value)
+            return value
+        return super().itemChange(change, value)
+
+    def mouseDoubleClickEvent(self, event):
+        self.controller.on_sizer_double_clicked()
+
+    def paint(self, painter, option, widget):
+        """
+        Draws the backdrop sizer on the bottom right corner.
+
+        Args:
+            painter (QtGui.QPainter): painter used for drawing the item.
+            option (QtGui.QStyleOptionGraphicsItem):
+                used to describe the parameters needed to draw.
+            widget (QtWidgets.QWidget): not used.
+        """
+        painter.save()
+
+        rect = self.boundingRect()
+        item = self.parentItem()
+        if item and item.selected:
+            color = QtGui.QColor(*NODE_SEL_BORDER_COLOR)
+        else:
+            color = QtGui.QColor(*item.color)
+            color = color.darker(50)
+        path = QtGui.QPainterPath()
+        path.moveTo(rect.topRight())
+        path.lineTo(rect.bottomRight())
+        path.lineTo(rect.bottomLeft())
+        painter.setBrush(color)
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.fillPath(path, painter.brush())
+
+        painter.restore()
+
+    def delete(self):
+        self.scene().removeItem(self)
 
 class XDisabledItem(QtWidgets.QGraphicsItem):
     """
@@ -107,6 +180,54 @@ class XDisabledItem(QtWidgets.QGraphicsItem):
 
         painter.restore()
 
+class NodeItemFrame(QtWidgets.QGraphicsProxyWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parentNodeItem = parent
+        self.resizeEventListener = None
+        self.setZValue(Z_VAL_NODE_WIDGET)
+
+        self._frame = QtWidgets.QFrame()
+        self._frame.setObjectName("_mainNodeFrame")
+        self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setSpacing(1)
+        self._frame.setLayout(self._layout)
+        self._frame.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+        self._frame.setStyleSheet("QFrame#_mainNodeFrame { background-color:transparent; }")
+
+        self.setWidget(self._frame)
+
+    @property
+    def layout(self):
+        return self._layout
+
+    @property
+    def frame(self):
+        return self._frame
+
+    @property
+    def width(self):
+        return self._frame.width()
+
+    @property
+    def height(self):
+        return self._frame.height()
+
+    @property
+    def minWidth(self):
+        return self._frame.minimumSizeHint().width()
+
+    @property
+    def minHeight(self):
+        return self._frame.minimumSizeHint().height()
+
+    def resizeEvent(self, evt):
+        if self.resizeEventListener:
+            self.resizeEventListener.onFrameResize(self.width, self.height)
+
+    def registerResizeEvent(self, listener):
+        self.resizeEventListener = listener
 
 class NodeItem(AbstractNodeItem):
     """
@@ -131,6 +252,13 @@ class NodeItem(AbstractNodeItem):
         self._input_items = {}
         self._output_items = {}
         self._widgets = {}
+
+        self._nodeItemFrame = NodeItemFrame(self)
+        self._layout = self._nodeItemFrame.layout
+        self._nodeItemFrame.registerResizeEvent(self)
+
+        self.sizer : NodeItemSizer = None
+        self.sizerSize = 20.0
 
     def paint(self, painter, option, widget):
         """
@@ -167,7 +295,7 @@ class NodeItem(AbstractNodeItem):
         label_rect = QtCore.QRectF(rect.left() + (radius / 2),
                                    rect.top() + (radius / 2),
                                    self._width - (radius / 1.25),
-                                   28)
+                                   NODE_TOP_BORDER_HEIGHT)
         path = QtGui.QPainterPath()
         path.addRoundedRect(label_rect, radius / 1.5, radius / 1.5)
         painter.setBrush(QtGui.QColor(0, 0, 0, 50))
@@ -239,13 +367,17 @@ class NodeItem(AbstractNodeItem):
             add_w (float): additional width.
             add_h (float): additional height.
         """
-        self._width = NODE_WIDTH
-        self._height = NODE_HEIGHT
+        self._width = max(self._width, NODE_WIDTH)
+        self._height = max(self._height, NODE_HEIGHT)
         width, height = self.calc_size(add_w, add_h)
         if width > self._width:
             self._width = width
         if height > self._height:
             self._height = height
+
+        if self.sizer:
+            frameWidth, frameHeight = self.determine_frame_size()
+            self.setFrameSize(max(frameWidth, self._nodeItemFrame.minWidth), max(frameHeight, self._nodeItemFrame.minHeight))
 
     def _set_text_color(self, color):
         """
@@ -288,7 +420,45 @@ class NodeItem(AbstractNodeItem):
             for pipe in port.connected_pipes:
                 pipe.reset()
 
-    def calc_size(self, add_w=0.0, add_h=0.0):
+    def calc_in_port_size(self):
+        port_height = 0.0
+        port_width = 0.0
+        input_widths = []
+        if self._input_items:
+            for port, text in self._input_items.items():
+                if port.isVisible():
+                    input_width = port.boundingRect().width() - PORT_FALLOFF
+                    if text.isVisible():
+                        input_width += text.boundingRect().width() / 1.5
+                    input_widths.append(input_width)
+                    port_height += port.boundingRect().height()
+
+            port_width = max(input_widths)
+        
+        port_height += (max(len(input_widths), 1) - 1) * PORT_SPACING
+
+        return port_width, port_height
+
+    def calc_out_port_size(self):
+        port_height = 0.0
+        port_width = 0.0
+        output_widths = []
+        if self._output_items:
+            for port, text in self._output_items.items():
+                if port.isVisible():
+                    output_width = port.boundingRect().width()
+                    if text.isVisible():
+                        output_width += text.boundingRect().width() / 1.5
+                    output_widths.append(output_width)
+                    port_height += port.boundingRect().height()
+
+            port_width = max(output_widths)
+
+        port_height += (max(len(output_widths), 1) - 1) * PORT_SPACING
+
+        return port_width, port_height
+
+    def calc_size(self, add_w=0.0, add_h=0.0, minSize=False):
         """
         calculate minimum node size.
 
@@ -299,48 +469,42 @@ class NodeItem(AbstractNodeItem):
         width = self._text_item.boundingRect().width()
         height = self._text_item.boundingRect().height()
 
+        portInWidth, portInHeight = self.calc_in_port_size()
+        portOutWidth, portOutHeight = self.calc_out_port_size()
+
+        height += max(portInHeight, portOutHeight)
+
         if self._widgets:
-            wid_width = max([
-                w.boundingRect().width() for w in self._widgets.values()
-            ])
-            if width < wid_width:
-                width = wid_width
+            wid_width = self._nodeItemFrame.minWidth if minSize else self._nodeItemFrame.width
+            width = max(width, wid_width)
 
-        port_height = 0.0
-        if self._input_items:
-            input_widths = []
-            for port, text in self._input_items.items():
-                input_width = port.boundingRect().width() - PORT_FALLOFF
-                if text.isVisible():
-                    input_width += text.boundingRect().width() / 1.5
-                input_widths.append(input_width)
-            width += max(input_widths)
-            port_height = port.boundingRect().height()
+        width += portInWidth + portOutWidth
 
-        if self._output_items:
-            output_widths = []
-            for port, text in self._output_items.items():
-                output_width = port.boundingRect().width()
-                if text.isVisible():
-                    output_width += text.boundingRect().width() / 1.5
-                output_widths.append(output_width)
-            width += max(output_widths)
-            port_height = port.boundingRect().height()
-
-        in_count = len([p for p in self.inputs if p.isVisible()])
-        out_count = len([p for p in self.outputs if p.isVisible()])
-        height += port_height * max([in_count, out_count])
         if self._widgets:
-            wid_height = 0.0
-            for w in self._widgets.values():
-                wid_height += w.boundingRect().height()
-            #wid_height += wid_height / len(self._widgets.values())
-
-            if wid_height > height:
-                height += wid_height
+            wid_height = self._nodeItemFrame.minHeight if minSize else self._nodeItemFrame.height
+            height = max(wid_height, height)
 
         width += add_w
         height += add_h
+
+        if self.sizer:
+            width += self.sizerSize
+            height += self.sizerSize
+
+        return width, height
+
+    def determine_frame_size(self):
+        """
+        Determine the frame size from the current _width and _height.
+        """
+        height = self._height - NODE_TOP_BORDER_HEIGHT
+        inW,_ = self.calc_in_port_size()
+        outW,_ = self.calc_out_port_size()
+        width = self._width - inW - outW
+
+        if self.sizer:
+            width -= self.sizerSize
+            height -= self.sizerSize
 
         return width, height
 
@@ -377,18 +541,12 @@ class NodeItem(AbstractNodeItem):
         Args:
             v_offset (float): vertical offset.
         """
-        if not self._widgets:
-            return
-        wid_heights = sum(
-            [w.boundingRect().height() for w in self._widgets.values()])
-        pos_y = self._height / 2
-        pos_y -= wid_heights / 2
-        pos_y += v_offset
-        for widget in self._widgets.values():
-            rect = widget.boundingRect()
-            pos_x = (self._width / 2) - (rect.width() / 2)
-            widget.setPos(pos_x, pos_y)
-            pos_y += rect.height()
+
+        frameWidth = self._nodeItemFrame.width
+        frameHeight = self._nodeItemFrame.height
+        xPos = self._width * 0.5 - frameWidth * 0.5
+        yPos = self._height * 0.5 - frameHeight * 0.5 + v_offset
+        self._nodeItemFrame.setPos(xPos, yPos)
 
     def arrange_ports(self, v_offset=0.0):
         """
@@ -399,7 +557,7 @@ class NodeItem(AbstractNodeItem):
         """
         width = self._width
         txt_offset = PORT_FALLOFF - 2
-        spacing = 1
+        spacing = PORT_SPACING
 
         # adjust input position
         inputs = [p for p in self.inputs if p.isVisible()]
@@ -450,7 +608,7 @@ class NodeItem(AbstractNodeItem):
         """
         Draw the node item in the scene.
         """
-        height = self._text_item.boundingRect().height()
+        height = NODE_TOP_BORDER_HEIGHT
 
         # setup initial base size.
         self._set_base_size(add_w=0.0, add_h=height)
@@ -479,7 +637,10 @@ class NodeItem(AbstractNodeItem):
             viewer (NodeGraphQt.widgets.viewer.NodeViewer): not used
             pos (tuple): cursor position.
         """
-        self.draw_node()
+        if self.sizer:
+            self.initResizable()
+        else:
+            self.draw_node()
 
         # set initial node position.
         if pos:
@@ -636,6 +797,7 @@ class NodeItem(AbstractNodeItem):
 
     def add_widget(self, widget):
         self._widgets[widget.name] = widget
+        self._layout.addWidget(widget.graphicsWidget)
 
     def get_widget(self, name):
         widget = self._widgets.get(name)
@@ -656,3 +818,67 @@ class NodeItem(AbstractNodeItem):
         for name, value in widgets.items():
             if self._widgets.get(name):
                 self._widgets[name].value = value
+
+    # Sizing:
+    def setFrameSize(self, width, height):
+        self._nodeItemFrame.frame.setFixedSize(width, height)
+
+    def onFrameResize(self, width, height):
+        self.draw_node()
+
+    def setResizable(self, resizable):
+        if (self.sizer != None) == resizable:
+            return
+
+        if resizable:
+            self.sizer = NodeItemSizer(self, self, self.sizerSize)
+        else:
+            self.sizer.delete()
+            self.sizer = None
+
+    def initResizable(self):
+        if self.sizer:
+            minW, minH = self.minimum_size
+            self._width, self._height = max(self._width, minW), max(self._height, minH)
+            self.draw_node()
+            QtCore.QCoreApplication.processEvents()
+            self.sizer.set_pos(self._width,self._height)
+            self.on_sizer_pos_changed(self.sizer.pos())
+
+    def minimizeResizable(self):
+        if self.sizer:
+            self._width, self._height = self.minimum_size
+            self.setFrameSize(self._nodeItemFrame.minWidth, self._nodeItemFrame.minHeight)
+            QtCore.QCoreApplication.processEvents()
+            self.draw_node()
+            self.sizer.set_pos(self._width,self._height)
+            self.on_sizer_pos_changed(self.sizer.pos())
+
+    def adjustSize(self):
+        self._width, self._height = self.calc_size(add_h=NODE_TOP_BORDER_HEIGHT * 0.5)
+        self.draw_node()
+        
+    def pre_init(self, viewer, pos=None):
+        super().pre_init(viewer, pos)
+
+    def on_sizer_pos_changed(self, pos):
+        prevWidth = self._width
+        prevHeight = self._height
+        self._width = pos.x() + self.sizer.size
+        self._height = pos.y() + self.sizer.size
+
+        dw = self._width - prevWidth
+        dh = self._height - prevHeight
+
+        frame = self._nodeItemFrame.frame
+        self.setFrameSize(frame.width() + dw, frame.height() + dh)
+
+        self.draw_node()
+
+    def on_sizer_double_clicked(self):
+        self.minimizeResizable()
+
+    @property
+    def minimum_size(self):
+        minW, minH = self.calc_size(add_h=NODE_TOP_BORDER_HEIGHT * 0.5, minSize=True)
+        return [minW, minH]

@@ -18,15 +18,15 @@ class _NodeGroupBox(QtWidgets.QGroupBox):
         self.setTitle(label)
         self.setStyleSheet(style)
 
-        self._layout = QtWidgets.QVBoxLayout(self)
+        self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(*margin)
         self._layout.setSpacing(1)
+        self.setLayout(self._layout)
 
     def add_node_widget(self, widget):
         self._layout.addWidget(widget)
 
-
-class NodeBaseWidget(QtWidgets.QGraphicsProxyWidget):
+class NodeBaseWidget(QtWidgets.QWidget):
     """
     Base Node Widget.
     """
@@ -34,8 +34,7 @@ class NodeBaseWidget(QtWidgets.QGraphicsProxyWidget):
     value_changed = QtCore.Signal(str, object)
 
     def __init__(self, parent=None, name='widget', label=''):
-        super(NodeBaseWidget, self).__init__(parent)
-        self.setZValue(Z_VAL_NODE_WIDGET)
+        super().__init__(parent._nodeItemFrame._frame)
         self._name = name
         self._label = label
 
@@ -47,9 +46,16 @@ class NodeBaseWidget(QtWidgets.QGraphicsProxyWidget):
         tooltip = '<b>{}</b><br/>{}'.format(self.name, tooltip)
         super(NodeBaseWidget, self).setToolTip(tooltip)
 
+    def setWidget(self, widget):
+        self._widget = widget
+
     @property
     def widget(self):
         raise NotImplementedError
+
+    @property 
+    def graphicsWidget(self):
+        return self._widget
 
     @property
     def value(self):
@@ -91,7 +97,6 @@ class NodeComboBox(NodeBaseWidget):
 
     def __init__(self, parent=None, name='', label='', items=None):
         super(NodeComboBox, self).__init__(parent, name, label)
-        self.setZValue(Z_VAL_NODE_WIDGET + 1)
         self._combo = QtWidgets.QComboBox()
         self._combo.setStyleSheet(STYLE_QCOMBOBOX)
         self._combo.setMinimumHeight(24)
@@ -104,6 +109,7 @@ class NodeComboBox(NodeBaseWidget):
         self.add_items(items)
         group = _NodeGroupBox(label)
         group.add_node_widget(self._combo)
+        group.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.setWidget(group)
 
     @property
@@ -191,13 +197,14 @@ class NodeCheckBox(NodeBaseWidget):
         self._cbox.setChecked(state)
         self._cbox.setMinimumWidth(80)
         self._cbox.setStyleSheet(STYLE_QCHECKBOX)
+        #self._cbox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         font = self._cbox.font()
         font.setPointSize(11)
         self._cbox.setFont(font)
         self._cbox.stateChanged.connect(self._value_changed)
         group = _NodeGroupBox(label)
+        group.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         group.add_node_widget(self._cbox)
-        group.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.setWidget(group)
         self.text = text
         self.state = state

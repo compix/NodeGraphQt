@@ -54,7 +54,7 @@ class NodeItemSizer(QtWidgets.QGraphicsItem):
 
     def paint(self, painter, option, widget):
         """
-        Draws the backdrop sizer on the bottom right corner.
+        Draws the sizer on the bottom right corner.
 
         Args:
             painter (QtGui.QPainter): painter used for drawing the item.

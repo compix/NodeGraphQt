@@ -16,6 +16,7 @@ import node_exec.qt_file_dialog_nodes
 import node_exec.qt_input_nodes
 import node_exec.xml_nodes
 import node_exec.qt_message_box_nodes
+import node_exec.zip_nodes
 
 import os
 # Add nodes that are only supported on windows:

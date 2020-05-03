@@ -4,7 +4,6 @@ Manages serialized visual graphs and their execution models.
 
 import node_exec.code_generator
 import os
-from PySide2.QtWidgets import QMessageBox
 import json
 import sys
 import importlib
@@ -63,17 +62,12 @@ class GraphManager(object):
         if codeGenerator == None:
             self.codeGenerator = node_exec.code_generator.CodeGenerator()
 
-        self.codeGenerator.setGraphManager(self)
         self.serializationFolder = serializationFolder
 
         self.graphsFolder = os.path.join(serializationFolder, GraphManager.GRAPHS_FOLDER)
         self.mkDir(self.graphsFolder)
 
         self.curSession = None
-        
-        # TODO:
-        # 1. Save with category as subfolder
-        # 2. Retrieve settings info instead of just the graph names.
 
     def mkDir(self, directory):
         if os.path.isdir(directory):
@@ -142,29 +136,30 @@ class GraphManager(object):
             s = self.curSession.graphSettings
             self.saveGraph(self.curSession.graph, s.name, s.category, s.startNodeName)
 
-    def saveGraph(self, graph, graphName, graphCategory, startNodeName='Exec Start'):
-        writeGraph = True
-
+    def doesGraphExist(self, graphName, graphCategory, startNodeName='Exec Start'):
         settings = GraphSettings(graphName, graphCategory, startNodeName)
         graphId = settings.id
 
         if graphId in self.retrieveAvailableGraphIds() and (self.curSession == None or self.curSession.graphSettings.name != graphName):
-            ret = QMessageBox.question(None, "Name already exists.", "Are you sure you want to overwrite the existing graph with the same name?")
-            writeGraph = ret == QMessageBox.Yes
+            return True
+        
+        return False
 
-        if writeGraph:
-            graphFolder = self.getGraphFolder(settings)
-            self.mkDir(graphFolder)
+    def saveGraph(self, graph, graphName, graphCategory, startNodeName='Exec Start'):
+        settings = GraphSettings(graphName, graphCategory, startNodeName)
 
-            graph.save_session(self.getGraphFilePath(settings))
-            startNode = graph.get_node_by_name(startNodeName)
-            moduleName = self.getModuleNameFromGraphName(graphName)
-            self.codeGenerator.generatePythonCode(graph, graphName, startNode, moduleName, graphFolder)
+        graphFolder = self.getGraphFolder(settings)
+        self.mkDir(graphFolder)
 
-            settingsFile = self.getSettingsPath(settings)
-            settings.save(settingsFile)
+        graph.save_session(self.getGraphFilePath(settings))
+        startNode = graph.get_node_by_name(startNodeName)
+        moduleName = self.getModuleNameFromGraphName(graphName)
+        self.codeGenerator.generatePythonCode(graph, graphName, startNode, moduleName, graphFolder)
 
-            self.curSession = Session(settings, graph)
+        settingsFile = self.getSettingsPath(settings)
+        settings.save(settingsFile)
+
+        self.curSession = Session(settings, graph)
 
     def loadGraph(self, graph, graphName : str, category : str):
         graphSettings = self.getGraphSettings(graphName, category)
@@ -182,7 +177,6 @@ class GraphManager(object):
         
     def executeGraph(self):
         if self.curSession == None:
-            QMessageBox.critical(None, "Unsaved state", "Please save the graph first.")
             return
 
         sessionSettings = self.curSession.graphSettings

@@ -217,12 +217,6 @@ def generatePythonExecutionSourceCodeLines(node, sourceCodeLines, indent = "", i
 
 
 class CodeGenerator(object):
-    def __init__(self):
-        self.graphManager : GraphManager = None
-
-    def setGraphManager(self, graphManager : GraphManager):
-        self.graphManager = graphManager
-
     def getScriptingNodes(self, graph):
         return [n for n in graph.all_nodes() if n.isScriptingNode]
 

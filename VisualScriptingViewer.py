@@ -26,9 +26,13 @@ from core import core
 from PySide2.QtCore import QThreadPool
 from VisualScripting import VisualScripting
 from PySide2.QtWidgets import QMessageBox
+from SettingsViewer import SettingsViewer
+from typing import List
 
-class VisualScriptingViewer(object):
+class VisualScriptingViewer(QtCore.QObject):
     def __init__(self, visualScripting : VisualScripting, parentWindow=None):
+        super().__init__()
+
         self.graph = NodeGraph()
         self.graphViewer = self.graph.viewer()
 
@@ -48,6 +52,11 @@ class VisualScriptingViewer(object):
         self.setupMenuBar(self.graph)
 
         self.onSaveEvent = Event()
+
+        self.dockWidgets : List[QtWidgets.QDockWidget] = []
+
+        self.settingsViewer = SettingsViewer(self.window, visualScripting)
+        self.setupDockWidget(self.settingsViewer.dockWidget)
 
     def onOpenInVisualStudioCode(self):
         QThreadPool.globalInstance().start(core.LambdaTask(self.openInVisualStudioCode))
@@ -163,6 +172,10 @@ class VisualScriptingViewer(object):
         sessionMenu.addAction(self.loadAction)
         sessionMenu.addAction(self.runAction)
         sessionMenu.addAction(self.openInCode)
+        self.sessionMenu = sessionMenu
+
+        self.viewMenu = QtWidgets.QMenu("View")
+        menuBar.addMenu(self.viewMenu)
 
         self.window.verticalLayout.insertWidget(0, menuBar)
 
@@ -177,6 +190,10 @@ class VisualScriptingViewer(object):
         for category in categories:
             comboBox.addItem(category)
 
+    def setupFolderComboBox(self, comboBox):
+        for folder in self.graphManager.serializationFolders:
+            comboBox.addItem(folder)
+
     def loadDialog(self, relUIPath) -> QDialog:
         dialog = self.loadUI(relUIPath)
         dialog.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
@@ -186,12 +203,15 @@ class VisualScriptingViewer(object):
         currentGraphName = self.graphManager.getSessionGraphName()
         currentStartNodeName = self.graphManager.getSessionStartNodeName()
         currentCategory = self.graphManager.getSessionCategory()
+        currentFolder = self.graphManager.getSessionGraphFolder()
 
         dialog = self.loadDialog("saveGraphDialog.ui")
         dialog.graphNameLineEdit.setText(currentGraphName)
         self.setupCategoryComboBox(dialog.categoryComboBox)
+        self.setupFolderComboBox(dialog.folderComboBox)
 
         dialog.categoryComboBox.setCurrentText(currentCategory)
+        dialog.folderComboBox.setCurrentText(currentFolder)
 
         scriptingNodes = [n for n in self.graph.all_nodes() if n.isScriptingNode]
         allGraphNodeNames = [n.name() for n in scriptingNodes if n.isViableStartNode]
@@ -207,14 +227,15 @@ class VisualScriptingViewer(object):
 
         if ok and graphName and len(graphName) > 0:
             startNodeName = dialog.startNodeComboBox.currentText()
+            graphFolder = dialog.folderComboBox.currentText()
 
             writeGraph = True
-            if self.graphManager.doesGraphExist(graphName, graphCategory, startNodeName):
+            if self.graphManager.doesGraphExist(graphName, graphCategory):
                 ret = QMessageBox.question(None, "Name already exists.", "Are you sure you want to overwrite the existing graph with the same name?")
                 writeGraph = ret == QMessageBox.Yes
 
             if writeGraph:
-                self.graphManager.saveGraph(self.graph, graphName, graphCategory, startNodeName=startNodeName)
+                self.graphManager.saveGraph(self.graph, graphFolder, graphName, graphCategory, startNodeName=startNodeName)
 
         self.onSaveEvent()
 
@@ -292,18 +313,43 @@ class VisualScriptingViewer(object):
         self.dockWidget.setObjectName("visualScriptingDockWidget")
         return self.dockWidget
 
+    def getSettingsAsDockWidget(self):
+        return self.settingsViewer.dockWidget
+
     def saveWindowState(self, settings):
         settings.setValue("visual_scripting_splitter_sizes", self.splitter.saveState())
         
     def restoreWindowState(self, settings):
         self.splitter.restoreState(settings.value("visual_scripting_splitter_sizes"))
 
+    def setupDockWidget(self, dockWidget : QtWidgets.QDockWidget):
+        self.dockWidgets.append(dockWidget)
+
+        # Add visibility checkbox to view main menu:
+        self.viewMenu.addAction(dockWidget.toggleViewAction())
+        # Allow window functionality (e.g. maximize)
+        dockWidget.topLevelChanged.connect(self.dockWidgetTopLevelChanged)
+        self.setDockWidgetFlags(dockWidget)
+
+        dockWidget.toggleViewAction()
+
+    def dockWidgetTopLevelChanged(self, changed):
+        self.setDockWidgetFlags(self.sender())
+
+    def setDockWidgetFlags(self, dockWidget):
+        if dockWidget.isFloating():
+            dockWidget.setWindowFlags(QtCore.Qt.CustomizeWindowHint |
+                QtCore.Qt.Window | QtCore.Qt.WindowMinimizeButtonHint |
+                QtCore.Qt.WindowMaximizeButtonHint |
+                QtCore.Qt.WindowCloseButtonHint)
+            dockWidget.show()
+
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
 
     saveDataFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "VisualScripting_SaveData")
     
-    visualScripting = VisualScripting(saveDataFolder)
+    visualScripting = VisualScripting([saveDataFolder])
     visualScriptingViewer = VisualScriptingViewer(visualScripting)
     visualScriptingViewer.window.show()
 

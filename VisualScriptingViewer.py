@@ -293,7 +293,10 @@ class VisualScriptingViewer(QtCore.QObject):
 
     def initNodes(self):
         for n in node_exec.nodes_cfg.NODES_TO_REGISTER:
-            self.graph.register_node(n)
+            try:
+                self.graph.register_node(n)
+            except:
+                pass
 
         self.graph.register_node(BackdropNode)
 

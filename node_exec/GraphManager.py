@@ -27,6 +27,10 @@ class GraphSettings(object):
     def sharedGraphsFolder(self):
         return Path(self.dataFolder).parent.parent
 
+    @property
+    def visualScriptingSerializationFolder(self):
+        return self.sharedGraphsFolder.parent
+
     @staticmethod
     def loadFromSettings(settingsPath):
         try:
@@ -188,7 +192,7 @@ class GraphManager(object):
     def saveCurrentSession(self):
         if self.curSession != None:
             s = self.curSession.graphSettings
-            self.saveGraph(self.curSession.graph, s.dataFolder, s.name, s.category, s.startNodeName)
+            self.saveGraph(self.curSession.graph, s.visualScriptingSerializationFolder, s.name, s.category, s.startNodeName)
 
     def doesGraphExist(self, graphName, graphCategory):
         graphId = GraphSettings.getGraphId(graphName, graphCategory)

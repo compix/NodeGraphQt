@@ -28,6 +28,7 @@ from VisualScripting import VisualScripting
 from PySide2.QtWidgets import QMessageBox
 from SettingsViewer import SettingsViewer
 from typing import List
+from VisualScripting import asset_manager
 
 class VisualScriptingViewer(QtCore.QObject):
     def __init__(self, visualScripting : VisualScripting, parentWindow=None):
@@ -41,7 +42,7 @@ class VisualScriptingViewer(QtCore.QObject):
         self.initNodes()
         self.setupPropertiesBin()
 
-        self.window = self.loadUI("graphQt.ui")
+        self.window = asset_manager.loadUI("graphQt.ui")
 
         self.splitter =  QtWidgets.QSplitter()
         self.window.bottomLayout.addWidget(self.splitter)
@@ -70,13 +71,6 @@ class VisualScriptingViewer(QtCore.QObject):
                 subprocess.Popen(f'code \"{os.path.normpath(codePath)}\"', shell=True)
             except Exception as e:
                 print(f"Failed: {e} - Please make sure Visual Studio Code is installed and 'code' is registered as a command.")
-
-    def loadUI(self, relUIPath):
-        uiFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), relUIPath)
-        uiFile = QtCore.QFile(uiFilePath)
-        uiFile.open(QtCore.QFile.ReadOnly)
-        loader = QtUiTools.QUiLoader()
-        return loader.load(uiFile)
 
     # Modified setup_context_menu from NodeGraphQt.base.actions
     def setupMenuBar(self, graph : NodeGraph):
@@ -195,7 +189,7 @@ class VisualScriptingViewer(QtCore.QObject):
             comboBox.addItem(folder)
 
     def loadDialog(self, relUIPath) -> QDialog:
-        dialog = self.loadUI(relUIPath)
+        dialog = asset_manager.loadUI(relUIPath)
         dialog.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         return dialog
 

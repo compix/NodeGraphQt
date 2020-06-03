@@ -3,13 +3,14 @@ from PySide2 import QtCore, QtUiTools, QtWidgets
 from PySide2.QtWidgets import QFileDialog, QMessageBox
 from VisualScripting import VisualScripting
 from PySide2.QtGui import QStandardItemModel, QStandardItem
+from VisualScripting import asset_manager
 
 class SettingsViewer(object):
     def __init__(self, parent, visualScripting : VisualScripting):
         super().__init__()
 
         self.visualScripting = visualScripting
-        self.widget = self.loadUI("settings.ui")
+        self.widget = asset_manager.loadUI("settings.ui")
 
         self.widget.serializationFolderSelectionButton.clicked.connect(self.onSelectSerializationFolder)
         self.widget.serializationFolderAddButton.clicked.connect(self.onAddSerializationFolder)
@@ -25,13 +26,6 @@ class SettingsViewer(object):
     def updateSerializationFoldersList(self):
         for folder in self.visualScripting.graphManager.serializationFolders:
             self.addSerializationFolderToList(folder)
-
-    def loadUI(self, relUIPath):
-        uiFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), relUIPath)
-        uiFile = QtCore.QFile(uiFilePath)
-        uiFile.open(QtCore.QFile.ReadOnly)
-        loader = QtUiTools.QUiLoader()
-        return loader.load(uiFile)
 
     def onSelectSerializationFolder(self):
         folder = QFileDialog.getExistingDirectory(self.widget, "Open Directory", self.widget.serializationFolderLineEdit.text())

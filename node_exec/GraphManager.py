@@ -12,23 +12,32 @@ from typing import List
 
 class GraphSettings(object):
     def __init__(self, name, category, startNodeName, graphFolder):
+        """Stores that settings of a visual scripting graph.
+
+        Args:
+            name (str): The name of the graph.
+            category (str): The category of the graph.
+            startNodeName (str): The name of the node the execution starts from.
+            graphFolder (str): The folder where all graphs are stored.
+        """
         self.name = name
         self.category = "Default" if category == None else category
         self.startNodeName = startNodeName
 
         self.id = GraphSettings.getGraphId(self.category, self.name)
         self.dataFolder = os.path.join(graphFolder, self.relativePath)
+        self.graphFolder = graphFolder
 
     @property
     def relativePath(self):
         return os.path.join(self.category, self.name)
 
     @property
-    def sharedGraphsFolder(self):
-        return Path(self.dataFolder).parent.parent
+    def sharedGraphsFolder(self) -> Path:
+        return Path(self.graphFolder)
 
     @property
-    def visualScriptingSerializationFolder(self):
+    def visualScriptingSerializationFolder(self) -> Path:
         return self.sharedGraphsFolder.parent
 
     @staticmethod
@@ -238,7 +247,7 @@ class GraphManager(object):
             return
 
         sessionSettings = self.curSession.graphSettings
-        self.saveGraph(self.curSession.graph, sessionSettings.dataFolder, sessionSettings.name, 
+        self.saveGraph(self.curSession.graph, sessionSettings.visualScriptingSerializationFolder, sessionSettings.name, 
                        sessionSettings.category, startNodeName=sessionSettings.startNodeName)
 
         sessionSettings = self.curSession.graphSettings

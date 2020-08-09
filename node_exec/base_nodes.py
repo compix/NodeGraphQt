@@ -498,3 +498,16 @@ class NodeButton(NodeBaseWidget):
     @property
     def has_property(self):
         return False
+
+class ReturnNode(BaseCustomNode):
+    """The ReturnNode returns a given input.
+    """
+    __identifier__ = DEFAULT_IDENTIFIER
+    NODE_NAME = 'Base Execute Node'
+
+    def __init__(self):
+        super(BaseExecuteNode, self).__init__()
+
+@defInlineNode('Return', isExecutable=True, identifier=DEFAULT_IDENTIFIER)
+def returnInput(inParam):
+    return f'return {inParam}'

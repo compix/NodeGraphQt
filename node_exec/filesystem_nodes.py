@@ -81,6 +81,7 @@ class FileAndDirectoryWalker(BaseCustomCodeNode):
             self.add_output('files')
 
             self.add_input('directory')
+            self.recursiveInput = self.add_input('recursive', default_value=True)
 
         @property
         def importLines(self):
@@ -98,6 +99,9 @@ class FileAndDirectoryWalker(BaseCustomCodeNode):
             loopConditionCode = code_generator.makeCodeLine(f"for {loopVarRoot},{loopVarDirs},{loopVarFiles} in {walkStatement}:", indent)
 
             code_generator.expandCodeWithCondition(self.loop_body_port, sourceCodeLines, loopConditionCode, indent)
+
+            sourceCodeLines.append(code_generator.makeCodeLine(f"if not {code_generator.getParamName(self.recursiveInput)}:", indent=indent + code_generator.DEFAULT_INDENT))
+            sourceCodeLines.append(code_generator.makeCodeLine(f"break", indent=indent + code_generator.DEFAULT_INDENT*2))
 
             # Loop completion code:
             code_generator.expandExecCode(self.loop_complete_port, sourceCodeLines, indent)
@@ -121,6 +125,7 @@ class FileWalker(BaseCustomCodeNode):
             self.dirInput = self.add_input('directory')
 
             self.extensionsInput = self.add_input('extensions', default_value=None)
+            self.recursiveInput = self.add_input('recursive', default_value=True)
 
         @property
         def importLines(self):
@@ -151,6 +156,9 @@ class FileWalker(BaseCustomCodeNode):
                             code_generator.makeCodeLine(f"continue", indent=indent + code_generator.DEFAULT_INDENT*3)]
 
             code_generator.expandCodeWithCondition(self.loop_body_port, sourceCodeLines, innerLoopConditionCode, indent + code_generator.DEFAULT_INDENT, preBodyLines=preBodyLines)
+
+            sourceCodeLines.append(code_generator.makeCodeLine(f"if not {code_generator.getParamName(self.recursiveInput)}:", indent=indent + code_generator.DEFAULT_INDENT))
+            sourceCodeLines.append(code_generator.makeCodeLine(f"break", indent=indent + code_generator.DEFAULT_INDENT*2))
 
             # Loop completion code:
             code_generator.expandExecCode(self.loop_complete_port, sourceCodeLines, indent)

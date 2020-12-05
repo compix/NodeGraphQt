@@ -42,3 +42,7 @@ def removeDictKey(dictionary, key):
 @defInlineNode('Create Dictionary', isExecutable=True, returnNames=['dict'], identifier=COLLECTION_IDENTIFIER)
 def createDict():
     return 'dict()'
+
+@defInlineNode('Create List', isExecutable=True, returnNames=['list'], identifier=COLLECTION_IDENTIFIER)
+def createList():
+    return '[]'

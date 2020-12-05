@@ -3,6 +3,7 @@ This module generates python code from a node graph.
 """
 
 from os import path
+from typing import List
 from node_exec import base_nodes
 from node_exec import flow_nodes
 from node_exec import inline_nodes
@@ -68,6 +69,24 @@ def getDefaultInputParamsSource(node):
     
     return params
 
+def isCodeLineInSameContext(codeLine: str, sourceCodeLines: List[str]):
+    # Start and current line and trace backwards. The context changes of indent changes:
+    i = len(sourceCodeLines) - 1
+    expectedIndentCount = len(codeLine) - len(codeLine.lstrip(' '))
+    while i >= 0:
+        currentLine = sourceCodeLines[i]
+        currentIndentCount = len(currentLine) - len(currentLine.lstrip(' '))
+
+        if currentIndentCount != expectedIndentCount:
+            return False
+        
+        if currentLine == codeLine:
+            return True
+
+        i -= 1
+    
+    return False
+
 # Supports only one output but multiple inputs.
 # Construct a call recursively by the following logic:
 # node.execute(node.in[0].execute(), node.in[1].execute())
@@ -85,8 +104,8 @@ def generatePythonGetSourceCodeLines(node, sourceCodeLines, indent):
     varNames = [getVarNameSource(node, idx) for idx in range(0, len(getNonExecutionOutputPorts(node)))]
     varName = ','.join(varNames)
     codeLine = f"{indent}{varName} = {codeLine}"
-        
-    if not codeLine in sourceCodeLines:
+    
+    if not isCodeLineInSameContext(codeLine, sourceCodeLines):
         sourceCodeLines.append(codeLine)
 
 def generateParamSourceCodeLines(node, sourceCodeLines, indent):
